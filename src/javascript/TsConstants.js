@@ -12,7 +12,8 @@ Ext.define("TsConstants", {
 
         },
         FETCH: {
-            PI: ['Project', 'Name', 'ObjectId']
+            PI: ['Project', 'Name', 'ObjectId'],
+            USER_STORY: ['PlanEstimate']
         }
     }
 });
