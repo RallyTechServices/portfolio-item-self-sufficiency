@@ -15,8 +15,16 @@ Ext.define("CArABU.app.TSApp", {
         {
             xtype: 'panel',
             itemId: 'chartPanel',
-            split: true,
-            region: 'center'
+            layout: 'vbox',
+            items: [{
+                xtype: 'panel',
+                itemId: 'selectLabel',
+                padding: '20 20 20 20',
+                width: 200,
+                border: false,
+                html: 'Select an item on the left...'
+            }],
+            region: 'center',
         }
     ],
 
@@ -27,6 +35,7 @@ Ext.define("CArABU.app.TSApp", {
     },
 
     launch: function() {
+        //var chartPanel = this.down('#selectLabel').center();
         this.addPiTypeSelector();
     },
 
@@ -122,67 +131,61 @@ Ext.define("CArABU.app.TSApp", {
         chartPanel.removeAll();
 
         var insideProject = record.get('InDescendentProjectStoryCount');
-        var outsideProject = record.get('TotalStoryCount') - record.get('InDescendentProjectStoryCount');
-        var data = [];
-        if (outsideProject) {
-            data.push({
-                name: TsConstants.LABEL.OUTSIDE_PROJECT,
-                data: outsideProject
-            })
-        }
-        if (insideProject) {
-            data.push({
-                name: TsConstants.LABEL.INSIDE_PROJECT,
-                data: insideProject
-            });
-        }
-        var store = Ext.create('Ext.data.JsonStore', {
-            fields: ['name', 'data'],
-            data: data
-        });
-        chartPanel.add(this.getChartConfig(store, TsConstants.LABEL.BY_COUNT));
+        var total = record.get('TotalStoryCount');
+        chartPanel.add(this.getChart(insideProject, total, TsConstants.LABEL.BY_COUNT));
 
         insideProject = record.get('InDescendentProjectPoints');
-        outsideProject = record.get('TotalPoints') - record.get('InDescendentProjectPoints');
-        data = [];
-        if (outsideProject) {
-            data.push({
-                name: TsConstants.LABEL.OUTSIDE_PROJECT,
-                data: outsideProject
-            })
-        }
-        if (insideProject) {
-            data.push({
-                name: TsConstants.LABEL.INSIDE_PROJECT,
-                data: insideProject
-            });
-        }
-        store = Ext.create('Ext.data.JsonStore', {
-            fields: ['name', 'data'],
-            data: data
-        });
-        chartPanel.add(this.getChartConfig(store, TsConstants.LABEL.BY_POINTS));
+        total = record.get('TotalPoints');
+        chartPanel.add(this.getChart(insideProject, total, TsConstants.LABEL.BY_POINTS));
     },
 
-    getChartConfig: function(store, title) {
+    getChart: function(inside, total, title) {
+        // Set a warning color if the percent inside the project is less than the warning threshold
+        var setWarning = (inside / total) * 100 < this.getSetting(TsConstants.SETTING.WARNING_THRESHOLD) ? true : false;
+        var pointFormatter = function() {
+            return this.point.y + ' ' + this.point.name + '<br/><b>( ' + Math.round(this.point.percentage) + '% )</b>';
+        };
+
         return {
-            xtype: 'chart',
-            title: title,
-            width: 300,
-            height: 300,
-            store: store,
-            legend: true,
-            theme: 'Base:gradients',
-            series: [{
-                type: 'pie',
-                angleField: 'data',
-                label: {
-                    field: 'name',
-                    display: 'inside',
-                    contrast: true
+            xtype: 'rallychart',
+            loadMask: false,
+            chartData: {
+                series: [{
+                    name: TsConstants.LABEL.PROJECT_SELF_SUFFICIENCY,
+                    //colors: TsConstants.CHART.COLORS,
+                    borderColor: '#000000',
+                    dataLabels: {
+                        formatter: pointFormatter,
+                        //distance: -30
+                    },
+                    data: [{
+                        name: TsConstants.LABEL.INSIDE_PROJECT,
+                        color: TsConstants.CHART.OK,
+                        y: inside,
+                    }, {
+                        name: TsConstants.LABEL.OUTSIDE_PROJECT,
+                        color: setWarning ? TsConstants.CHART.WARNING : TsConstants.CHART.NORMAL_1,
+                        y: total - inside
+                    }],
+                    enableMouseTracking: false
+                }]
+            },
+            chartConfig: {
+                chart: {
+                    type: 'pie',
                 },
-                colorSet: TsConstants.CHART.COLORS
-            }],
+                plotOptions: {
+                    pie: {
+                        size: '80%',
+                    }
+                },
+                subtitle: {
+                    text: TsConstants.LABEL.PROJECT_SELF_SUFFICIENCY
+                },
+                title: {
+                    text: title
+                }
+            }
         }
     },
 
@@ -192,11 +195,6 @@ Ext.define("CArABU.app.TSApp", {
             // The metric hasn't been computed
             result = 'Loading...';
         }
-        /*
-        else if (whole == 0) {
-            // There is no total value, don't render a 0
-            result = '--';
-        }*/
         else {
             result = Math.round(part / whole * 100);
             if (isNaN(result) || !isFinite(result)) {
@@ -205,7 +203,7 @@ Ext.define("CArABU.app.TSApp", {
             else {
                 var warningThreshold = this.getSetting(TsConstants.SETTING.WARNING_THRESHOLD);
                 var classes = '';
-                if (result <= warningThreshold) {
+                if (result < warningThreshold) {
                     classes = 'caution'
                 }
                 result = '<div class="' + classes + '">' + result + '%</div>';
@@ -219,7 +217,10 @@ Ext.define("CArABU.app.TSApp", {
             xtype: 'rallynumberfield',
             name: TsConstants.SETTING.WARNING_THRESHOLD,
             label: TsConstants.LABEL.WARNING_THRESHOLD,
-            labelWidth: 200
+            labelWidth: 200,
+            maxValue: 100,
+            minValue: 0,
+            allowDecimals: false
         }];
     },
 
