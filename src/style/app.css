@@ -15,3 +15,8 @@
     margin-right: 5px;
     cursor: pointer;
 }
+
+.caution {
+    border-radius: 3px;
+    background-color: rgb(249, 203, 7);
+}

@@ -7,9 +7,10 @@ Ext.define("TsConstants", {
         },
         LABEL: {
             PI_TYPE: 'Portfolio Item Type',
+            WARNING_THRESHOLD: 'Minimum Desired Self-Sufficiency'
         },
         SETTING: {
-
+            WARNING_THRESHOLD: 'WARNING_THRESHOLD',
         },
         FETCH: {
             PI: ['Project', 'Name', 'ObjectId'],
