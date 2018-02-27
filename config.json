@@ -9,6 +9,8 @@
         "src/javascript/utils/__ts-logger.js",
         "src/javascript/utils/__ts-utilities.js",
         "src/javascript/TsConstants.js",
+        "src/javascript/TsUtils.js",
+        "src/javascript/TsSelfSufficiency.js",
         "src/javascript/TsMetricsMgr.js",
         "src/javascript/app.js"
     ]

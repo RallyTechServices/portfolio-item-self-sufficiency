@@ -1,12 +1,12 @@
-/* global Ext _ Rally TsConstants Deft */
+/* global Ext _ Rally TsConstants Deft TsUtils TsSelfSufficiency */
 Ext.define('TsMetricsMgr', function() {
     return {
         statics: {
-            getSelfSufficiency: getSelfSufficiency
+            updateSelfSufficiency: updateSelfSufficiency
         }
     }
 
-    function getSelfSufficiency(portfolioItem) {
+    function updateSelfSufficiency(portfolioItem) {
         if (portfolioItem) {
             var projectOid = Rally.getApp().getContext().getProject().ObjectID;
             var portfolioItemOid = portfolioItem.get('ObjectID');
@@ -21,16 +21,22 @@ Ext.define('TsMetricsMgr', function() {
                 _.forEach(result[0], function(project) {
                     projectsHash[project.get('ObjectID')] = project;
                 })
-                return getMetrics(projectsHash, result[1]);
+                var metrics = getMetrics(projectsHash, result[1]);
+                TsUtils.updateRecord(portfolioItem, metrics, TsSelfSufficiency);
             });
         }
     }
 
     function getDescendentProjects(projectOid) {
-        var queries = _.forEach(getParentQueries(), function(query) {
+        var queries = _.forEach(TsUtils.getParentQueries(), function(query) {
             query.property += ".ObjectID";
             query.value = projectOid;
         });
+        // Include the parent project itself
+        queries.push({
+            property: "ObjectID",
+            value: projectOid
+        })
         var store = Ext.create('Rally.data.wsapi.Store', {
             model: 'Project',
             fetch: ['ObjectID'],
@@ -75,6 +81,9 @@ Ext.define('TsMetricsMgr', function() {
 
         var store = Ext.create('Rally.data.wsapi.Store', {
             model: 'HierarchicalRequirement',
+            context: {
+                project: null
+            },
             fetch: ['ObjectID', 'PlanEstimate', 'Project'],
             autoLoad: true,
             filters: filters
@@ -106,18 +115,6 @@ Ext.define('TsMetricsMgr', function() {
     }
     */
 
-    function getParentQueries() {
-        return _.map(_.range(1, 10), function(depth) {
-            var result = [];
-            while (depth-- > 0) {
-                result.push("Parent")
-            }
-            return {
-                property: result.join('.')
-            }
-        });
-    }
-
     function getMetrics(projectsHash, stories) {
         var result = _.reduce(stories, function(accumulator, story) {
             accumulator.totalCount += 1;
@@ -135,7 +132,12 @@ Ext.define('TsMetricsMgr', function() {
             inDescendentProjectPoints: 0,
         })
 
-        return result;
+        return Ext.create('TsSelfSufficiency', {
+            TotalStoryCount: result.totalCount,
+            TotalPoints: result.totalPoints,
+            InDescendentProjectStoryCount: result.inDescendentProjectCount,
+            InDescendentProjectPoints: result.inDescendentProjectPoints
+        });
     }
 
 });
