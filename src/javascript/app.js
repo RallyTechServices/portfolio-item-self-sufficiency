@@ -105,12 +105,84 @@ Ext.define("CArABU.app.TSApp", {
                                     _.forEach(records, function(record) {
                                         TsMetricsMgr.updateSelfSufficiency(record);
                                     })
+                                },
+                                itemclick: function(tree, record) {
+                                    this.drawCharts(record);
                                 }
                             }
                         }],
                     });
                 }
             });
+        }
+    },
+
+    drawCharts: function(record) {
+        var chartPanel = this.down('#chartPanel');
+        chartPanel.removeAll();
+
+        var insideProject = record.get('InDescendentProjectStoryCount');
+        var outsideProject = record.get('TotalStoryCount') - record.get('InDescendentProjectStoryCount');
+        var data = [];
+        if (outsideProject) {
+            data.push({
+                name: TsConstants.LABEL.OUTSIDE_PROJECT,
+                data: outsideProject
+            })
+        }
+        if (insideProject) {
+            data.push({
+                name: TsConstants.LABEL.INSIDE_PROJECT,
+                data: insideProject
+            });
+        }
+        var store = Ext.create('Ext.data.JsonStore', {
+            fields: ['name', 'data'],
+            data: data
+        });
+        chartPanel.add(this.getChartConfig(store, TsConstants.LABEL.BY_COUNT));
+
+        insideProject = record.get('InDescendentProjectPoints');
+        outsideProject = record.get('TotalPoints') - record.get('InDescendentProjectPoints');
+        data = [];
+        if (outsideProject) {
+            data.push({
+                name: TsConstants.LABEL.OUTSIDE_PROJECT,
+                data: outsideProject
+            })
+        }
+        if (insideProject) {
+            data.push({
+                name: TsConstants.LABEL.INSIDE_PROJECT,
+                data: insideProject
+            });
+        }
+        store = Ext.create('Ext.data.JsonStore', {
+            fields: ['name', 'data'],
+            data: data
+        });
+        chartPanel.add(this.getChartConfig(store, TsConstants.LABEL.BY_POINTS));
+    },
+
+    getChartConfig: function(store, title) {
+        return {
+            xtype: 'chart',
+            title: title,
+            width: 300,
+            height: 300,
+            store: store,
+            legend: true,
+            theme: 'Base:gradients',
+            series: [{
+                type: 'pie',
+                angleField: 'data',
+                label: {
+                    field: 'name',
+                    display: 'inside',
+                    contrast: true
+                },
+                colorSet: TsConstants.CHART.COLORS
+            }],
         }
     },
 
