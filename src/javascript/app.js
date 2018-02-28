@@ -175,7 +175,12 @@ Ext.define("CArABU.app.TSApp", {
             chartConfig: {
                 chart: {
                     type: 'pie',
-                    height: "300",
+                    height: "400",
+                },
+                plotOptions: {
+                    pie: {
+                        size: '75%',
+                    }
                 },
                 subtitle: {
                     text: TsConstants.LABEL.PROJECT_SELF_SUFFICIENCY
