@@ -17,6 +17,7 @@ By default this is 80%.
 
 ## Version History
 * 1.0.0 - Initial Version
+* 1.0.1 - Enabled scrollbars
 
 ### First Load
 
