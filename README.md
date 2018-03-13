@@ -2,7 +2,8 @@
 
 ## Summary/Description
 
-![screenshot](./images/screenshot.png "This is an example")
+![Summary View](./images/summary.png "Summary View Example")
+![Details View](./images/details.png "Summary View Example")
 
 A portfolio item is considered 100% self-sufficient if all of its stories are assigned
 to projects at or below the selected project scope.
@@ -10,7 +11,8 @@ to projects at or below the selected project scope.
 For a selected project scope, determine how many leaf stories for each portfolio item are
 assigned to projects within the selected project or its descendents. Compare that with
 stories for the portfolio item are assigned to projects outside of the selected project
-or its descendents.
+or its descendents. The results are presented in a summary pie chart and a detailed listing
+of stories inside or outside of the project tree.
 
 The minimum desired self-sufficiency threshold can be configured using an app setting.
 By default this is 80%.
