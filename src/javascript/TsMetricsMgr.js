@@ -39,7 +39,7 @@ Ext.define('TsMetricsMgr', function() {
         })
         var store = Ext.create('Rally.data.wsapi.Store', {
             model: 'Project',
-            fetch: ['ObjectID'],
+            fetch: TsConstants.FETCH.PROJECT,
             autoLoad: false,
             filters: Rally.data.wsapi.Filter.or(queries),
         });
@@ -84,36 +84,12 @@ Ext.define('TsMetricsMgr', function() {
             context: {
                 project: null
             },
-            fetch: ['ObjectID', 'PlanEstimate', 'Project'],
+            fetch: TsConstants.FETCH.USER_STORY,
             autoLoad: true,
             filters: filters
         });
         return store.load();
     }
-
-    /*
-    function getLeafStories(portfolioItemOid) {
-        var store = Ext.create('Rally.data.lookback.SnapshotStore', {
-            fetch: TsConstants.FETCH.USER_STORY,
-            autoLoad: true,
-            filters: [{
-                    property: '_TypeHierarchy',
-                    value: 'HierarchicalRequirement'
-                },
-                {
-                    property: '_ItemHierarchy',
-                    value: portfolioItemOid
-                },
-                {
-                    property: 'DirectChildrenCount',
-                    value: 0
-                }
-            ],
-        });
-
-        return store.load();
-    }
-    */
 
     function getMetrics(projectsHash, stories) {
         var result = _.reduce(stories, function(accumulator, story) {
@@ -123,6 +99,10 @@ Ext.define('TsMetricsMgr', function() {
             if (projectsHash.hasOwnProperty(project)) {
                 accumulator.inDescendentProjectCount += 1;
                 accumulator.inDescendentProjectPoints += story.get('PlanEstimate');
+                accumulator.insideDescendentProjectStories.push(story);
+            }
+            else {
+                accumulator.outsideDescendentProjectStories.push(story);
             }
             return accumulator;
         }, {
@@ -130,13 +110,17 @@ Ext.define('TsMetricsMgr', function() {
             totalPoints: 0,
             inDescendentProjectCount: 0,
             inDescendentProjectPoints: 0,
+            insideDescendentProjectStories: [],
+            outsideDescendentProjectStories: []
         })
 
         return Ext.create('TsSelfSufficiency', {
             TotalStoryCount: result.totalCount,
             TotalPoints: result.totalPoints,
             InDescendentProjectStoryCount: result.inDescendentProjectCount,
-            InDescendentProjectPoints: result.inDescendentProjectPoints
+            InDescendentProjectPoints: result.inDescendentProjectPoints,
+            InsideDescendentProjectStories: result.insideDescendentProjectStories,
+            OutsideDescendentProjectStories: result.outsideDescendentProjectStories
         });
     }
 

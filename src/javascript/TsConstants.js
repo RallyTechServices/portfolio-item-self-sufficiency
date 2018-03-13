@@ -3,7 +3,11 @@ Ext.define("TsConstants", {
     statics: {
         ID: {
             ITEM_STORE: 'ITEM_STORE',
-            SELECT_ITEM_CONTROL: 'SELECT_ITEM_CONTROL'
+            SELECT_ITEM_CONTROL: 'SELECT_ITEM_CONTROL',
+            SELECTION_AREA: 'SELECTION_AREA',
+            RESULTS_AREA: 'RESULTS_AREA',
+            SUMMARY_PANEL: 'SUMMARY_PANEL',
+            DETAILS_PANEL: 'DETAILS_PANEL'
         },
         LABEL: {
             PI_TYPE: 'Portfolio Item Type',
@@ -13,14 +17,17 @@ Ext.define("TsConstants", {
             OUTSIDE_PROJECT: 'Outside of Project',
             BY_POINTS: 'Story Points',
             BY_COUNT: 'Story Count',
-            SELECT_ITEM: 'Select an item on the left...'
+            SELECT_ITEM: 'Select an item on the left...',
+            SUMMARY_PANEL: 'Summary',
+            DETAILS_PANEL: 'Details'
         },
         SETTING: {
             WARNING_THRESHOLD: 'WARNING_THRESHOLD',
         },
         FETCH: {
             PI: ['Project', 'Name', 'ObjectId'],
-            USER_STORY: ['PlanEstimate']
+            USER_STORY: ['ObjectID', 'FormattedID', 'Name', 'Project', 'Feature', 'PlanEstimate'],
+            PROJECT: ['ObjectID']
         },
         CHART: {
             WHITE: '#FFFFFF',
@@ -32,6 +39,6 @@ Ext.define("TsConstants", {
                 Ext.draw.Color.toHex('rgb(82,177,64)'),
                 Ext.draw.Color.toHex('rgb(245,88,64)')
             ]
-        }
+        },
     }
 });

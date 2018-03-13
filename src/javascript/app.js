@@ -5,7 +5,7 @@ Ext.define("CArABU.app.TSApp", {
     layout: 'border',
     items: [{
             xtype: 'panel',
-            itemId: 'navigationPanel',
+            itemId: TsConstants.ID.SELECTION_AREA,
             padding: '0 0 10 0',
             autoScroll: true,
             bodyPadding: 5,
@@ -14,20 +14,42 @@ Ext.define("CArABU.app.TSApp", {
             region: 'west'
         },
         {
-            xtype: 'panel',
-            itemId: 'chartPanel',
-            autoScroll: true,
-            layout: 'vbox',
+            xtype: 'tabpanel',
+            itemId: TsConstants.ID.RESULTS_AREA,
             items: [{
                 xtype: 'panel',
-                itemId: 'selectLabel',
-                padding: '20 20 20 20',
-                width: 200,
-                border: false,
-                html: 'Select an item on the left...'
+                itemId: TsConstants.ID.SUMMARY_PANEL,
+                title: TsConstants.LABEL.SUMMARY_PANEL,
+                autoScroll: true,
+                layout: 'vbox',
+                items: [{
+                    xtype: 'panel',
+                    itemId: 'selectLabel',
+                    padding: '20 20 20 20',
+                    width: 200,
+                    border: false,
+                    html: 'Select an item on the left...'
+                }],
+            }, {
+                xtype: 'panel',
+                itemId: TsConstants.ID.DETAILS_PANEL,
+                title: TsConstants.LABEL.DETAILS_PANEL,
+                layout: {
+                    type: 'vbox',
+                    align: 'stretch'
+                },
+                autoScroll: true,
+                items: [{
+                    xtype: 'panel',
+                    itemId: 'selectLabel',
+                    padding: '20 20 20 20',
+                    width: 200,
+                    border: false,
+                    html: 'Select an item on the left...'
+                }]
             }],
             region: 'center',
-        }
+        },
     ],
 
     config: {
@@ -37,12 +59,11 @@ Ext.define("CArABU.app.TSApp", {
     },
 
     launch: function() {
-        //var chartPanel = this.down('#selectLabel').center();
         this.addPiTypeSelector();
     },
 
     addPiTypeSelector: function() {
-        var navPanel = this.down('#navigationPanel');
+        var navPanel = this.down('#' + TsConstants.ID.SELECTION_AREA);
         navPanel.add({
             xtype: 'rallyportfolioitemtypecombobox',
             fieldLabel: TsConstants.LABEL.PI_TYPE,
@@ -62,12 +83,13 @@ Ext.define("CArABU.app.TSApp", {
         if (piType) {
             Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
                 models: [piType.get('TypePath')],
+                fetch: TsConstants.FETCH.PI,
                 autoLoad: true,
                 enableHierarchy: true
             }).then({
                 scope: this,
                 success: function(store) {
-                    var navPanel = this.down('#navigationPanel');
+                    var navPanel = this.down('#' + TsConstants.ID.SELECTION_AREA);
                     if (this.itemSelector) {
                         navPanel.remove(this.itemSelector);
                     }
@@ -107,7 +129,7 @@ Ext.define("CArABU.app.TSApp", {
                             enableEditing: false,
                             enableInlineAdd: false,
                             enableRanking: false,
-                            shouldShowRowActionsColumn: false,
+                            shouldShowRowActionsColumn: true,
                             store: store,
                             fetch: ['ObjectID'],
                             listeners: {
@@ -118,7 +140,8 @@ Ext.define("CArABU.app.TSApp", {
                                     })
                                 },
                                 itemclick: function(tree, record) {
-                                    this.drawCharts(record);
+                                    this.addCharts(record);
+                                    this.addDetails(record);
                                 }
                             }
                         }],
@@ -128,17 +151,58 @@ Ext.define("CArABU.app.TSApp", {
         }
     },
 
-    drawCharts: function(record) {
-        var chartPanel = this.down('#chartPanel');
-        chartPanel.removeAll();
+    addCharts: function(record) {
+        var summaryPanel = this.down('#' + TsConstants.ID.SUMMARY_PANEL);
+        summaryPanel.removeAll();
 
         var insideProject = record.get('InDescendentProjectStoryCount');
         var total = record.get('TotalStoryCount');
-        chartPanel.add(this.getChart(insideProject, total, TsConstants.LABEL.BY_COUNT));
+        summaryPanel.add(this.getChart(insideProject, total, TsConstants.LABEL.BY_COUNT));
 
         insideProject = record.get('InDescendentProjectPoints');
         total = record.get('TotalPoints');
-        chartPanel.add(this.getChart(insideProject, total, TsConstants.LABEL.BY_POINTS));
+        summaryPanel.add(this.getChart(insideProject, total, TsConstants.LABEL.BY_POINTS));
+    },
+
+    addDetails: function(record) {
+        var detailsPanel = this.down('#' + TsConstants.ID.DETAILS_PANEL);
+        detailsPanel.removeAll();
+
+        var columnCfgs = [
+            'FormattedID',
+            'Name',
+            'Project',
+            'Feature'
+        ];
+
+        var insideStories = record.get('OutsideDescendentProjectStories');
+        detailsPanel.add({
+            xtype: 'rallygrid',
+            title: TsConstants.LABEL.OUTSIDE_PROJECT + ' (' + insideStories.length + ')',
+            storeConfig: {
+                model: 'UserStory',
+                autoLoad: false,
+                data: insideStories
+            },
+            columnCfgs: columnCfgs,
+            collapsible: true,
+            flex: 1,
+            showPagingToolbar: false
+        });
+        var outsideStories = record.get('InsideDescendentProjectStories');
+        detailsPanel.add({
+            xtype: 'rallygrid',
+            title: TsConstants.LABEL.INSIDE_PROJECT + ' (' + outsideStories.length + ')',
+            storeConfig: {
+                model: 'UserStory',
+                autoLoad: false,
+                data: outsideStories
+            },
+            columnCfgs: columnCfgs,
+            collapsible: true,
+            flex: 1,
+            showPagingToolbar: false
+        });
     },
 
     getChart: function(inside, total, title) {
@@ -147,7 +211,7 @@ Ext.define("CArABU.app.TSApp", {
         var pointFormatter = function() {
             return this.point.y + ' ' + this.point.name + '<br/><b>( ' + Math.round(this.point.percentage) + '% )</b>';
         };
-
+        var self = this;
         return {
             xtype: 'rallychart',
             loadMask: false,
@@ -169,7 +233,16 @@ Ext.define("CArABU.app.TSApp", {
                         color: setWarning ? TsConstants.CHART.WARNING : TsConstants.CHART.NORMAL_1,
                         y: total - inside
                     }],
-                    enableMouseTracking: false
+                    tooltip: {
+                        followPointer: false,
+                        pointFormat: 'Click for details'
+                    },
+                    point: {
+                        events: {
+                            click: self.onChartClick.bind(self)
+                        }
+                    },
+                    enableMouseTracking: true
                 }]
             },
             chartConfig: {
@@ -190,6 +263,11 @@ Ext.define("CArABU.app.TSApp", {
                 }
             }
         }
+    },
+
+    onChartClick: function() {
+        // Switch to details view
+        this.down('#' + TsConstants.ID.RESULTS_AREA).setActiveTab(TsConstants.ID.DETAILS_PANEL);
     },
 
     percentRenderer: function(part, whole) {
