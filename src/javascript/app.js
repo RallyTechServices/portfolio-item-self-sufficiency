@@ -171,32 +171,33 @@ Ext.define("CArABU.app.TSApp", {
         var columnCfgs = [
             'FormattedID',
             'Name',
+            'ScheduleState',
+            'Owner',
             'Project',
             'Feature'
         ];
 
-        var insideStories = record.get('OutsideDescendentProjectStories');
+        var outsideStories = record.get('OutsideDescendentProjectStories');
         detailsPanel.add({
             xtype: 'rallygrid',
-            title: TsConstants.LABEL.OUTSIDE_PROJECT + ' (' + insideStories.length + ')',
-            storeConfig: {
-                model: 'UserStory',
-                autoLoad: false,
-                data: insideStories
-            },
-            columnCfgs: columnCfgs,
-            collapsible: true,
-            flex: 1,
-            showPagingToolbar: false
-        });
-        var outsideStories = record.get('InsideDescendentProjectStories');
-        detailsPanel.add({
-            xtype: 'rallygrid',
-            title: TsConstants.LABEL.INSIDE_PROJECT + ' (' + outsideStories.length + ')',
+            title: TsConstants.LABEL.OUTSIDE_PROJECT + ' (' + outsideStories.length + ')',
             storeConfig: {
                 model: 'UserStory',
                 autoLoad: false,
                 data: outsideStories
+            },
+            columnCfgs: columnCfgs,
+            collapsible: true,
+            showPagingToolbar: false,
+        });
+        var insideStories = record.get('InsideDescendentProjectStories');
+        detailsPanel.add({
+            xtype: 'rallygrid',
+            title: TsConstants.LABEL.INSIDE_PROJECT + ' (' + insideStories.length + ')',
+            storeConfig: {
+                model: 'UserStory',
+                autoLoad: false,
+                data: insideStories
             },
             columnCfgs: columnCfgs,
             collapsible: true,
