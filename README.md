@@ -20,6 +20,7 @@ By default this is 80%.
 ## Version History
 * 1.0.0 - Initial Version
 * 1.0.1 - Enabled scrollbars
+* 1.0.4 - Added Schedule State to Details grid
 
 ### First Load
 
