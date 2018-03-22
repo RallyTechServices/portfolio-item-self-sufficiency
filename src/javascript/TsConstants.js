@@ -26,7 +26,7 @@ Ext.define("TsConstants", {
         },
         FETCH: {
             PI: ['Project', 'Name', 'ObjectId'],
-            USER_STORY: ['ObjectID', 'FormattedID', 'Name', 'Project', 'Feature', 'PlanEstimate'],
+            USER_STORY: ['ObjectID', 'FormattedID', 'Name', 'Project', 'Feature', 'PlanEstimate', 'ScheduleState'],
             PROJECT: ['ObjectID']
         },
         CHART: {

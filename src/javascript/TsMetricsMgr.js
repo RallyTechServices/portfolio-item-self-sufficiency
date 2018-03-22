@@ -2,29 +2,53 @@
 Ext.define('TsMetricsMgr', function() {
     return {
         statics: {
-            updateSelfSufficiency: updateSelfSufficiency
+            setMetrics: setMetrics
         }
     }
 
-    function updateSelfSufficiency(portfolioItem) {
-        if (portfolioItem) {
-            var projectOid = Rally.getApp().getContext().getProject().ObjectID;
-            var portfolioItemOid = portfolioItem.get('ObjectID');
-            return Deft.Promise.all(
-                [
-                    getDescendentProjects(projectOid),
-                    getAllLeafStories(portfolioItemOid)
-                ]
-            ).then(function(result) {
-                // Build projects hash
-                var projectsHash = {};
-                _.forEach(result[0], function(project) {
-                    projectsHash[project.get('ObjectID')] = project;
-                })
-                var metrics = getMetrics(projectsHash, result[1]);
-                TsUtils.updateRecord(portfolioItem, metrics, TsSelfSufficiency);
-            });
+    function setMetrics(portfolioItem) {
+        if (!portfolioItem) {
+            return
         }
+
+        var projectOid = Rally.getApp().getContext().getProject().ObjectID;
+        var portfolioItemOid = portfolioItem.get('ObjectID');
+        return getDescendentProjects(projectOid)
+            .then({
+                scope: this,
+                success: function(projects) {
+                    var oids = _.map(projects, function(project) {
+                        return project.get('ObjectID');
+                    });
+                    var piFilter = getPiFilter(portfolioItemOid);
+                    var insideStoriesFilter = getStoriesFilter(oids, true);
+                    var outsideStoriesFilter = getStoriesFilter(oids, false)
+                    var insideStoriesStore = getLeafStoriesStore(piFilter.and(insideStoriesFilter));
+                    var outsideStoriesStore = getLeafStoriesStore(piFilter.and(outsideStoriesFilter));
+                    return Deft.Promise.all([
+                        insideStoriesStore.load(),
+                        outsideStoriesStore.load()
+                    ]).then({
+                        scope: this,
+                        success: function(results) {
+                            var insidePoints = insideStoriesStore.sum('PlanEstimate');
+                            var outsidePoints = outsideStoriesStore.sum('PlanEstimate');
+
+                            var metrics = Ext.create('TsSelfSufficiency', {
+                                TotalStoryCount: insideStoriesStore.getTotalCount() + outsideStoriesStore.getTotalCount(),
+                                TotalPoints: insidePoints + outsidePoints,
+                                InsideStoryCount: insideStoriesStore.getTotalCount(),
+                                InsideStoryPoints: insidePoints,
+                                OutsideStoryCount: outsideStoriesStore.getTotalCount(),
+                                OutsideStoryPoints: outsidePoints,
+                                InsideStoriesStore: insideStoriesStore,
+                                OutsideStoriesStore: outsideStoriesStore
+                            });
+                            TsUtils.updateRecord(portfolioItem, metrics);
+                        }
+                    })
+                }
+            });
     }
 
     function getDescendentProjects(projectOid) {
@@ -47,9 +71,30 @@ Ext.define('TsMetricsMgr', function() {
         return store.load();
     }
 
-    function getAllLeafStories(portfolioItemOid) {
-        // TODO (tj) make this query dynamic based on defined PortfolioItemTypes
+    /**
+     * @param projectOids leaf stories under one of these projects
+     * @param inProjects (boolean) true for stories in one of the projects, false for stories NOT in one of the projects
+     */
+    function getStoriesFilter(projectOids, inProjects) {
+        var result;
+        var projectOidsQueries = _.map(projectOids, function(oid) {
+            return {
+                property: 'Project.ObjectID',
+                operator: inProjects ? '=' : '!=',
+                value: oid
+            }
+        });
+        if (inProjects) {
+            result = Rally.data.wsapi.Filter.or(projectOidsQueries);
+        }
+        else {
+            result = Rally.data.wsapi.Filter.and(projectOidsQueries);
+        }
+        return result;
+    }
 
+    function getPiFilter(portfolioItemOid) {
+        // TODO (tj) make this query dynamic based on defined PortfolioItemTypes
         var parentQueries = [{
                 property: 'Feature.ObjectID', // Feature
                 value: portfolioItemOid
@@ -71,13 +116,15 @@ Ext.define('TsMetricsMgr', function() {
                 value: portfolioItemOid
             }
         ];
-        var parentFilters = Rally.data.wsapi.Filter.or(parentQueries);
+        return Rally.data.wsapi.Filter.or(parentQueries);
+    }
 
+    function getLeafStoriesStore(storyFilters) {
         var filters = new Rally.data.wsapi.Filter({
                 property: 'DirectChildrenCount',
                 value: 0
             })
-            .and(parentFilters);
+            .and(storyFilters);
 
         var store = Ext.create('Rally.data.wsapi.Store', {
             model: 'HierarchicalRequirement',
@@ -88,40 +135,6 @@ Ext.define('TsMetricsMgr', function() {
             autoLoad: true,
             filters: filters
         });
-        return store.load();
+        return store;
     }
-
-    function getMetrics(projectsHash, stories) {
-        var result = _.reduce(stories, function(accumulator, story) {
-            accumulator.totalCount += 1;
-            accumulator.totalPoints += story.get('PlanEstimate');
-            var project = story.get('Project').ObjectID
-            if (projectsHash.hasOwnProperty(project)) {
-                accumulator.inDescendentProjectCount += 1;
-                accumulator.inDescendentProjectPoints += story.get('PlanEstimate');
-                accumulator.insideDescendentProjectStories.push(story);
-            }
-            else {
-                accumulator.outsideDescendentProjectStories.push(story);
-            }
-            return accumulator;
-        }, {
-            totalCount: 0,
-            totalPoints: 0,
-            inDescendentProjectCount: 0,
-            inDescendentProjectPoints: 0,
-            insideDescendentProjectStories: [],
-            outsideDescendentProjectStories: []
-        })
-
-        return Ext.create('TsSelfSufficiency', {
-            TotalStoryCount: result.totalCount,
-            TotalPoints: result.totalPoints,
-            InDescendentProjectStoryCount: result.inDescendentProjectCount,
-            InDescendentProjectPoints: result.inDescendentProjectPoints,
-            InsideDescendentProjectStories: result.insideDescendentProjectStories,
-            OutsideDescendentProjectStories: result.outsideDescendentProjectStories
-        });
-    }
-
 });
