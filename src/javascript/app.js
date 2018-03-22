@@ -105,7 +105,7 @@ Ext.define("CArABU.app.TSApp", {
                                     sortable: false,
                                     scope: this,
                                     renderer: function(value, meta, record) {
-                                        var part = record.get('InDescendentProjectStoryCount');
+                                        var part = record.get('InsideStoryCount');
                                         var whole = record.get('TotalStoryCount');
                                         return this.percentRenderer(part, whole);
                                     }
@@ -116,7 +116,7 @@ Ext.define("CArABU.app.TSApp", {
                                     sortable: false,
                                     scope: this,
                                     renderer: function(value, meta, record) {
-                                        var part = record.get('InDescendentProjectPoints');
+                                        var part = record.get('InsideStoryPoints');
                                         var whole = record.get('TotalPoints');
                                         return this.percentRenderer(part, whole);
                                     }
@@ -136,10 +136,11 @@ Ext.define("CArABU.app.TSApp", {
                                 scope: this,
                                 load: function(store, node, records) {
                                     _.forEach(records, function(record) {
-                                        TsMetricsMgr.updateSelfSufficiency(record);
+                                        TsMetricsMgr.setMetrics(record);
                                     })
                                 },
                                 itemclick: function(tree, record) {
+                                    // TODO (tj) prevent charts and details until stories data done loading
                                     this.addCharts(record);
                                     this.addDetails(record);
                                 }
@@ -155,11 +156,11 @@ Ext.define("CArABU.app.TSApp", {
         var summaryPanel = this.down('#' + TsConstants.ID.SUMMARY_PANEL);
         summaryPanel.removeAll();
 
-        var insideProject = record.get('InDescendentProjectStoryCount');
+        var insideProject = record.get('InsideStoryCount');
         var total = record.get('TotalStoryCount');
         summaryPanel.add(this.getChart(insideProject, total, TsConstants.LABEL.BY_COUNT));
 
-        insideProject = record.get('InDescendentProjectPoints');
+        insideProject = record.get('InsideStoryPoints');
         total = record.get('TotalPoints');
         summaryPanel.add(this.getChart(insideProject, total, TsConstants.LABEL.BY_POINTS));
     },
@@ -171,34 +172,29 @@ Ext.define("CArABU.app.TSApp", {
         var columnCfgs = [
             'FormattedID',
             'Name',
-            'ScheduleState',
+            {
+                title: "Sched",
+                dataIndex: 'ScheduleState'
+            },
             'Owner',
             'Project',
             'Feature'
         ];
 
-        var outsideStories = record.get('OutsideDescendentProjectStories');
         detailsPanel.add({
             xtype: 'rallygrid',
-            title: TsConstants.LABEL.OUTSIDE_PROJECT + ' (' + outsideStories.length + ')',
-            storeConfig: {
-                model: 'UserStory',
-                autoLoad: false,
-                data: outsideStories
-            },
+            title: TsConstants.LABEL.OUTSIDE_PROJECT + ' (' + record.get('OutsideStoryCount') + ')',
+            store: record.get('OutsideStoriesStore'),
             columnCfgs: columnCfgs,
             collapsible: true,
+            flex: 1,
             showPagingToolbar: false,
         });
-        var insideStories = record.get('InsideDescendentProjectStories');
+
         detailsPanel.add({
             xtype: 'rallygrid',
-            title: TsConstants.LABEL.INSIDE_PROJECT + ' (' + insideStories.length + ')',
-            storeConfig: {
-                model: 'UserStory',
-                autoLoad: false,
-                data: insideStories
-            },
+            title: TsConstants.LABEL.INSIDE_PROJECT + ' (' + record.get('InsideStoryCount') + ')',
+            store: record.get('InsideStoriesStore'),
             columnCfgs: columnCfgs,
             collapsible: true,
             flex: 1,
