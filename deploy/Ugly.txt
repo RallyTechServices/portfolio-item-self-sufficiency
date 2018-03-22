@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CATS-portfolio-item-self-sufficiency-1.0.3</title>
+    <title>CATS-portfolio-item-self-sufficiency-1.0.4</title>
     <!--  (c) 2017 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Thu Mar 22 2018 21:12:40 GMT+0000 (UTC) -->
+    <!--  Build Date: Thu Mar 22 2018 21:15:54 GMT+0000 (UTC) -->
 
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu Mar 22 2018 21:12:40 GMT+0000 (UTC)";
+        var APP_BUILD_DATE = "Thu Mar 22 2018 21:15:54 GMT+0000 (UTC)";
         var ARTIFACT = "";
         var BUILDER  = "ec2-user";
-        var CHECKSUM = 8476113973;
+        var CHECKSUM = 8476117315;
     </script>
 
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
