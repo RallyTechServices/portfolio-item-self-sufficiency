@@ -180,25 +180,26 @@ Ext.define("CArABU.app.TSApp", {
             'Project',
             'Feature'
         ];
-
         detailsPanel.add({
-            xtype: 'rallygrid',
+            xtype: 'rallygridboard',
+            height: this.getHeight() / 2,
             title: TsConstants.LABEL.OUTSIDE_PROJECT + ' (' + record.get('OutsideStoryCount') + ')',
-            store: record.get('OutsideStoriesStore'),
-            columnCfgs: columnCfgs,
-            collapsible: true,
-            flex: 1,
-            showPagingToolbar: false,
+            gridConfig: {
+                overflowX: 'scroll',
+                store: record.get('OutsideStoriesStore'),
+                columnCfgs: columnCfgs,
+            },
         });
 
         detailsPanel.add({
-            xtype: 'rallygrid',
+            xtype: 'rallygridboard',
+            height: this.getHeight() / 2,
             title: TsConstants.LABEL.INSIDE_PROJECT + ' (' + record.get('InsideStoryCount') + ')',
-            store: record.get('InsideStoriesStore'),
-            columnCfgs: columnCfgs,
-            collapsible: true,
-            flex: 1,
-            showPagingToolbar: false
+            gridConfig: {
+                overflowX: 'scroll',
+                store: record.get('InsideStoriesStore'),
+                columnCfgs: columnCfgs,
+            },
         });
     },
 

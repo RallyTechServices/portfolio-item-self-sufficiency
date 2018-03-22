@@ -20,29 +20,49 @@ Ext.define('TsMetricsMgr', function() {
                     var oids = _.map(projects, function(project) {
                         return project.get('ObjectID');
                     });
+                    var insideStore;
+                    var outsideStore;
                     var piFilter = getPiFilter(portfolioItemOid);
                     var insideStoriesFilter = getStoriesFilter(oids, true);
-                    var outsideStoriesFilter = getStoriesFilter(oids, false)
-                    var insideStoriesStore = getLeafStoriesStore(piFilter.and(insideStoriesFilter));
-                    var outsideStoriesStore = getLeafStoriesStore(piFilter.and(outsideStoriesFilter));
+                    var outsideStoriesFilter = getStoriesFilter(oids, false);
+                    var insideLoadPromise = getLeafStoriesStore(piFilter.and(insideStoriesFilter))
+                        .then(function(store) {
+                            insideStore = store;
+                            return store.load();
+                        });
+                    var outsideLoadPromise = getLeafStoriesStore(piFilter.and(outsideStoriesFilter))
+                        .then(function(store) {
+                            outsideStore = store;
+                            return store.load();
+                        });
                     return Deft.Promise.all([
-                        insideStoriesStore.load(),
-                        outsideStoriesStore.load()
+                        insideLoadPromise,
+                        outsideLoadPromise
                     ]).then({
                         scope: this,
                         success: function(results) {
-                            var insidePoints = insideStoriesStore.sum('PlanEstimate');
-                            var outsidePoints = outsideStoriesStore.sum('PlanEstimate');
+                            var insidePoints = 0;
+                            var insideCount = 0;
+                            insideStore.each(function(story) {
+                                insidePoints += story.get('PlanEstimate');
+                                insideCount++;
+                            });
+                            var outsidePoints = 0;
+                            var outsideCount = 0;
+                            outsideStore.each(function(story) {
+                                outsidePoints += story.get('PlanEstimate');
+                                outsideCount++;
+                            });
 
                             var metrics = Ext.create('TsSelfSufficiency', {
-                                TotalStoryCount: insideStoriesStore.getTotalCount() + outsideStoriesStore.getTotalCount(),
+                                TotalStoryCount: insideCount + outsideCount,
                                 TotalPoints: insidePoints + outsidePoints,
-                                InsideStoryCount: insideStoriesStore.getTotalCount(),
+                                InsideStoryCount: insideCount,
                                 InsideStoryPoints: insidePoints,
-                                OutsideStoryCount: outsideStoriesStore.getTotalCount(),
+                                OutsideStoryCount: outsideCount,
                                 OutsideStoryPoints: outsidePoints,
-                                InsideStoriesStore: insideStoriesStore,
-                                OutsideStoriesStore: outsideStoriesStore
+                                InsideStoriesStore: insideStore,
+                                OutsideStoriesStore: outsideStore
                             });
                             TsUtils.updateRecord(portfolioItem, metrics);
                         }
@@ -126,15 +146,16 @@ Ext.define('TsMetricsMgr', function() {
             })
             .and(storyFilters);
 
-        var store = Ext.create('Rally.data.wsapi.Store', {
+        return Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
             model: 'HierarchicalRequirement',
             context: {
                 project: null
             },
             fetch: TsConstants.FETCH.USER_STORY,
-            autoLoad: true,
+            autoLoad: false,
+            enableHierarchy: false,
+            limit: Infinity,
             filters: filters
         });
-        return store;
     }
 });
