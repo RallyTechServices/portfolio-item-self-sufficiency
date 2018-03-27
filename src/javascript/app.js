@@ -205,6 +205,14 @@ Ext.define("CArABU.app.TSApp", {
                             headerPosition: 'left',
                             modelNames: ['HierarchicalRequirement'],
                         }],
+                        listeners: {
+                            boxready: function(grid) {
+                                grid.setLoading(true);
+                            },
+                            load: function(grid) {
+                                grid.setLoading(false);
+                            }
+                        }
                     }]
                 });
             }
@@ -240,6 +248,14 @@ Ext.define("CArABU.app.TSApp", {
                             headerPosition: 'left',
                             modelNames: ['HierarchicalRequirement'],
                         }],
+                        listeners: {
+                            boxready: function(grid) {
+                                grid.setLoading(true);
+                            },
+                            load: function(grid) {
+                                grid.setLoading(false);
+                            }
+                        }
                     }]
                 });
             }
