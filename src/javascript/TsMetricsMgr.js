@@ -6,27 +6,6 @@ Ext.define('TsMetricsMgr', function() {
         }
     }
 
-    function loadAllData(store, accumulator) {
-        // A promise that resolves with all the data (instead of just a page worth)
-        if (!accumulator) {
-            accumulator = [];
-        }
-
-        return store.load().then(function(results) {
-            accumulator = accumulator.concat(results);
-            var totalCount = store.getTotalCount();
-            var loadedCount = accumulator.length;
-            if (loadedCount < totalCount) {
-                store._setCurrentPage(store.currentPage + 1);
-                return loadAllData(store, accumulator);
-            }
-            else {
-                store._setCurrentPage(1);
-                return accumulator;
-            }
-        });
-    }
-
     function setMetrics(portfolioItem) {
         if (!portfolioItem) {
             return
@@ -42,26 +21,17 @@ Ext.define('TsMetricsMgr', function() {
                     var oids = _.map(projects, function(project) {
                         return project.get('ObjectID');
                     });
-                    var insideStore;
-                    var outsideStore;
+
+                    // Get the filters needed to load the stories in/out of the project hierarchy
                     var piFilter = getPiFilter(portfolioItemOid);
-                    var insideStoriesFilter = getStoriesFilter(oids, true);
-                    var outsideStoriesFilter = getStoriesFilter(oids, false);
-                    var insideLoadPromise = getLeafStoriesStore(piFilter.and(insideStoriesFilter))
-                        .then(function(store) {
-                            insideStore = store;
-                            return loadAllData(store);
-                            //return store.load();
-                        });
-                    var outsideLoadPromise = getLeafStoriesStore(piFilter.and(outsideStoriesFilter))
-                        .then(function(store) {
-                            outsideStore = store;
-                            return loadAllData(store);
-                            //return store.load();
-                        });
+                    var leafStoriesFilter = getLeafStoriesFilter();
+                    var insideStoriesFilter = getStoriesFilter(oids, true).and(piFilter).and(leafStoriesFilter);
+                    var outsideStoriesFilter = getStoriesFilter(oids, false).and(piFilter).and(leafStoriesFilter);
+
+                    // Load the in/out stories in parallel
                     return Deft.Promise.all([
-                        insideLoadPromise,
-                        outsideLoadPromise
+                        loadStories(insideStoriesFilter),
+                        loadStories(outsideStoriesFilter)
                     ]).then({
                         scope: this,
                         success: function(results) {
@@ -73,7 +43,7 @@ Ext.define('TsMetricsMgr', function() {
                                 return accumulator += story.get('PlanEstimate');
                             }, 0);
 
-                            var outsideCount = outsideStore.getTotalCount();
+                            var outsideCount = outsideStories.length;
                             var outsidePoints = _.reduce(outsideStories, function(accumulator, story) {
                                 return accumulator += story.get('PlanEstimate');
                             }, 0);
@@ -85,9 +55,11 @@ Ext.define('TsMetricsMgr', function() {
                                 InsideStoryPoints: insidePoints,
                                 OutsideStoryCount: outsideCount,
                                 OutsideStoryPoints: outsidePoints,
-                                InsideStoriesStore: insideStore,
-                                OutsideStoriesStore: outsideStore
+                                InsideStoriesFilter: insideStoriesFilter, // Needed so we can use these same filters to display details
+                                OutsideStoriesFilter: outsideStoriesFilter // Needed so we can use these same filters to display details
                             });
+
+                            // Add the Self Sufficiency fields to the portfolio item directly so they can be used in a grid of PIs
                             TsUtils.updateRecord(portfolioItem, metrics);
                         }
                     })
@@ -163,13 +135,14 @@ Ext.define('TsMetricsMgr', function() {
         return Rally.data.wsapi.Filter.or(parentQueries);
     }
 
-    function getLeafStoriesStore(storyFilters) {
-        var filters = new Rally.data.wsapi.Filter({
-                property: 'DirectChildrenCount',
-                value: 0
-            })
-            .and(storyFilters);
+    function getLeafStoriesFilter() {
+        return new Rally.data.wsapi.Filter({
+            property: 'DirectChildrenCount',
+            value: 0
+        });
+    }
 
+    function loadStories(filters) {
         return Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
             model: 'HierarchicalRequirement',
             context: {
@@ -179,6 +152,34 @@ Ext.define('TsMetricsMgr', function() {
             autoLoad: false,
             enableHierarchy: false,
             filters: filters
+        }).then(function(store) {
+            return loadAllData(store);
+        });
+    }
+
+    /**
+     * Given a tree store, load ALL of the data into an array and return the array.
+     * By default, the tree store will only load the current page at a time.
+     * 
+     * @returns A promise that resolves with all the data (instead of just a page worth)
+     */
+    function loadAllData(store, accumulator) {
+        if (!accumulator) {
+            accumulator = [];
+        }
+
+        return store.load().then(function(results) {
+            accumulator = accumulator.concat(results);
+            var totalCount = store.getTotalCount();
+            var loadedCount = accumulator.length;
+            if (loadedCount < totalCount) {
+                store._setCurrentPage(store.currentPage + 1);
+                return loadAllData(store, accumulator);
+            }
+            else {
+                store._setCurrentPage(1);
+                return accumulator;
+            }
         });
     }
 });

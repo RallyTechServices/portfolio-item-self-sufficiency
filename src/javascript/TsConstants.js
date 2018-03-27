@@ -27,6 +27,14 @@ Ext.define("TsConstants", {
         },
         SETTING: {
             WARNING_THRESHOLD: 'WARNING_THRESHOLD',
+            DEFAULT_DETAILS_FIELDS: [
+                'FormattedID',
+                'Name',
+                'ScheduleState',
+                'Owner',
+                'Project',
+                'Feature'
+            ]
         },
         FETCH: {
             PI: ['Project', 'Name', 'ObjectId'],
