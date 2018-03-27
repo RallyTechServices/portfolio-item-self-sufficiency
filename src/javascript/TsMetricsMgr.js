@@ -6,6 +6,27 @@ Ext.define('TsMetricsMgr', function() {
         }
     }
 
+    function loadAllData(store, accumulator) {
+        // A promise that resolves with all the data (instead of just a page worth)
+        if (!accumulator) {
+            accumulator = [];
+        }
+
+        return store.load().then(function(results) {
+            accumulator = accumulator.concat(results);
+            var totalCount = store.getTotalCount();
+            var loadedCount = accumulator.length;
+            if (loadedCount < totalCount) {
+                store._setCurrentPage(store.currentPage + 1);
+                return loadAllData(store, accumulator);
+            }
+            else {
+                store._setCurrentPage(1);
+                return accumulator;
+            }
+        });
+    }
+
     function setMetrics(portfolioItem) {
         if (!portfolioItem) {
             return
@@ -13,6 +34,7 @@ Ext.define('TsMetricsMgr', function() {
 
         var projectOid = Rally.getApp().getContext().getProject().ObjectID;
         var portfolioItemOid = portfolioItem.get('ObjectID');
+
         return getDescendentProjects(projectOid)
             .then({
                 scope: this,
@@ -28,12 +50,14 @@ Ext.define('TsMetricsMgr', function() {
                     var insideLoadPromise = getLeafStoriesStore(piFilter.and(insideStoriesFilter))
                         .then(function(store) {
                             insideStore = store;
-                            return store.load();
+                            return loadAllData(store);
+                            //return store.load();
                         });
                     var outsideLoadPromise = getLeafStoriesStore(piFilter.and(outsideStoriesFilter))
                         .then(function(store) {
                             outsideStore = store;
-                            return store.load();
+                            return loadAllData(store);
+                            //return store.load();
                         });
                     return Deft.Promise.all([
                         insideLoadPromise,
@@ -41,18 +65,18 @@ Ext.define('TsMetricsMgr', function() {
                     ]).then({
                         scope: this,
                         success: function(results) {
-                            var insidePoints = 0;
-                            var insideCount = 0;
-                            insideStore.each(function(story) {
-                                insidePoints += story.get('PlanEstimate');
-                                insideCount++;
-                            });
-                            var outsidePoints = 0;
-                            var outsideCount = 0;
-                            outsideStore.each(function(story) {
-                                outsidePoints += story.get('PlanEstimate');
-                                outsideCount++;
-                            });
+                            var insideStories = results[0];
+                            var outsideStories = results[1];
+
+                            var insideCount = insideStories.length;
+                            var insidePoints = _.reduce(insideStories, function(accumulator, story) {
+                                return accumulator += story.get('PlanEstimate');
+                            }, 0);
+
+                            var outsideCount = outsideStore.getTotalCount();
+                            var outsidePoints = _.reduce(outsideStories, function(accumulator, story) {
+                                return accumulator += story.get('PlanEstimate');
+                            }, 0);
 
                             var metrics = Ext.create('TsSelfSufficiency', {
                                 TotalStoryCount: insideCount + outsideCount,
@@ -154,7 +178,6 @@ Ext.define('TsMetricsMgr', function() {
             fetch: TsConstants.FETCH.USER_STORY,
             autoLoad: false,
             enableHierarchy: false,
-            limit: Infinity,
             filters: filters
         });
     }

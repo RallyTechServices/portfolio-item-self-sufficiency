@@ -169,37 +169,61 @@ Ext.define("CArABU.app.TSApp", {
         var detailsPanel = this.down('#' + TsConstants.ID.DETAILS_PANEL);
         detailsPanel.removeAll();
 
-        var columnCfgs = [
+        var defaultFields = [
             'FormattedID',
             'Name',
-            {
-                title: "Sched",
-                dataIndex: 'ScheduleState'
-            },
+            'ScheduleState',
             'Owner',
             'Project',
             'Feature'
         ];
+
         detailsPanel.add({
-            xtype: 'rallygridboard',
-            height: this.getHeight() / 2,
+            xtype: 'panel',
             title: TsConstants.LABEL.OUTSIDE_PROJECT + ' (' + record.get('OutsideStoryCount') + ')',
-            gridConfig: {
-                overflowX: 'scroll',
-                store: record.get('OutsideStoriesStore'),
-                columnCfgs: columnCfgs,
-            },
+            items: [{
+                xtype: 'rallygridboard',
+                height: this.getHeight() / 2,
+                stateful: true,
+                stateId: TsConstants.ID.OUTSIDE_STORY_GRID,
+                gridConfig: {
+                    overflowX: 'scroll',
+                    store: record.get('OutsideStoriesStore'),
+                    columnCfgs: defaultFields
+                },
+                plugins: [{
+                    ptype: 'rallygridboardfieldpicker',
+                    headerPosition: 'left',
+                    modelNames: ['HierarchicalRequirement'],
+                    stateful: true,
+                    stateId: TsConstants.ID.OUTSIDE_STORY_COLUMN_PICKER,
+                    gridAlwaysSelectedValues: defaultFields
+                }],
+            }]
         });
 
         detailsPanel.add({
-            xtype: 'rallygridboard',
-            height: this.getHeight() / 2,
+            xtype: 'panel',
             title: TsConstants.LABEL.INSIDE_PROJECT + ' (' + record.get('InsideStoryCount') + ')',
-            gridConfig: {
-                overflowX: 'scroll',
-                store: record.get('InsideStoriesStore'),
-                columnCfgs: columnCfgs,
-            },
+            items: [{
+                xtype: 'rallygridboard',
+                height: this.getHeight() / 2,
+                stateful: true,
+                stateId: TsConstants.ID.INSIDE_STORY_COLUMN_PICKER,
+                gridConfig: {
+                    overflowX: 'scroll',
+                    store: record.get('InsideStoriesStore'),
+                    columnCfgs: defaultFields
+                },
+                plugins: [{
+                    ptype: 'rallygridboardfieldpicker',
+                    headerPosition: 'left',
+                    modelNames: ['HierarchicalRequirement'],
+                    stateful: true,
+                    stateId: TsConstants.ID.COLUMN_PICKER,
+                    gridAlwaysSelectedValues: defaultFields
+                }],
+            }]
         });
     },
 
