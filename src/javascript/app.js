@@ -140,9 +140,11 @@ Ext.define("CArABU.app.TSApp", {
                                     })
                                 },
                                 itemclick: function(tree, record) {
-                                    // TODO (tj) prevent charts and details until stories data done loading
-                                    this.addCharts(record);
-                                    this.addDetails(record);
+                                    // Only draw the charts if data has loaded for the item
+                                    if (record.get('TotalStoryCount')) {
+                                        this.addCharts(record);
+                                        this.addDetails(record);
+                                    }
                                 }
                             }
                         }],
@@ -169,36 +171,109 @@ Ext.define("CArABU.app.TSApp", {
         var detailsPanel = this.down('#' + TsConstants.ID.DETAILS_PANEL);
         detailsPanel.removeAll();
 
-        var columnCfgs = [
-            'FormattedID',
-            'Name',
-            {
-                title: "Sched",
-                dataIndex: 'ScheduleState'
-            },
-            'Owner',
-            'Project',
-            'Feature'
-        ];
+        // For some reason, the rallygridboard is really unhappy if the same PI
+        // is clicked again, it blanks all the rows. The workaround is to recreate
+        // the store AND the grid each time an item is clicked. For this reason, the
+        // filters used to load the in/out stories are saved for each PI and used here.
+        // The alternative of re-using the stores that were created in the TsMetricsMgr
+        // didn't work, and would blank all stories when a PI was clicked a second time.
 
-        detailsPanel.add({
-            xtype: 'rallygrid',
-            title: TsConstants.LABEL.OUTSIDE_PROJECT + ' (' + record.get('OutsideStoryCount') + ')',
-            store: record.get('OutsideStoriesStore'),
-            columnCfgs: columnCfgs,
-            collapsible: true,
-            flex: 1,
-            showPagingToolbar: false,
+        // Add the grid of outside stories
+        Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
+            model: 'HierarchicalRequirement',
+            context: {
+                project: null
+            },
+            fetch: TsConstants.FETCH.USER_STORY,
+            autoLoad: true,
+            enableHierarchy: false,
+            filters: record.get('OutsideStoriesFilter')
+        }).then({
+            scope: this,
+            success: function(store) {
+                detailsPanel.add({
+                    xtype: 'panel',
+                    collapsible: true,
+                    layout: {
+                        type: 'vbox',
+                        align: 'stretch',
+                        padding: '0 5 5 5',
+                    },
+                    title: TsConstants.LABEL.OUTSIDE_PROJECT + ' (' + record.get('OutsideStoryCount') + ')',
+                    items: [{
+                        xtype: 'rallygridboard',
+                        height: this.getHeight() / 2,
+                        stateful: true,
+                        stateId: TsConstants.ID.OUTSIDE_STORY_GRID,
+                        gridConfig: {
+                            store: store,
+                            columnCfgs: TsConstants.SETTING.DEFAULT_DETAILS_FIELDS
+                        },
+                        plugins: [{
+                            ptype: 'rallygridboardfieldpicker',
+                            headerPosition: 'left',
+                            modelNames: ['HierarchicalRequirement'],
+                        }, ],
+                        listeners: {
+                            boxready: function(grid) {
+                                grid.setLoading(true);
+                            },
+                            load: function(grid) {
+                                grid.setLoading(false);
+                            }
+                        }
+                    }]
+                });
+            }
         });
 
-        detailsPanel.add({
-            xtype: 'rallygrid',
-            title: TsConstants.LABEL.INSIDE_PROJECT + ' (' + record.get('InsideStoryCount') + ')',
-            store: record.get('InsideStoriesStore'),
-            columnCfgs: columnCfgs,
-            collapsible: true,
-            flex: 1,
-            showPagingToolbar: false
+        // Add the grid of inside stories
+        Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
+            model: 'HierarchicalRequirement',
+            context: {
+                project: null
+            },
+            fetch: TsConstants.FETCH.USER_STORY,
+            autoLoad: true,
+            enableHierarchy: false,
+            filters: record.get('InsideStoriesFilter')
+        }).then({
+            scope: this,
+            success: function(store) {
+                detailsPanel.add({
+                    xtype: 'panel',
+                    collapsible: true,
+                    layout: {
+                        type: 'vbox',
+                        align: 'stretch',
+                        padding: '0 5 5 5',
+                    },
+                    title: TsConstants.LABEL.INSIDE_PROJECT + ' (' + record.get('InsideStoryCount') + ')',
+                    items: [{
+                        xtype: 'rallygridboard',
+                        height: this.getHeight() / 2,
+                        stateful: true,
+                        stateId: TsConstants.ID.INSIDE_STORY_GRID,
+                        gridConfig: {
+                            store: store,
+                            columnCfgs: TsConstants.SETTING.DEFAULT_DETAILS_FIELDS
+                        },
+                        plugins: [{
+                            ptype: 'rallygridboardfieldpicker',
+                            headerPosition: 'left',
+                            modelNames: ['HierarchicalRequirement'],
+                        }],
+                        listeners: {
+                            boxready: function(grid) {
+                                grid.setLoading(true);
+                            },
+                            load: function(grid) {
+                                grid.setLoading(false);
+                            }
+                        }
+                    }]
+                });
+            }
         });
     },
 

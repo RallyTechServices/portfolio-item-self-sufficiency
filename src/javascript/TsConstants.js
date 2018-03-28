@@ -7,7 +7,11 @@ Ext.define("TsConstants", {
             SELECTION_AREA: 'SELECTION_AREA',
             RESULTS_AREA: 'RESULTS_AREA',
             SUMMARY_PANEL: 'SUMMARY_PANEL',
-            DETAILS_PANEL: 'DETAILS_PANEL'
+            DETAILS_PANEL: 'DETAILS_PANEL',
+            OUTSIDE_STORY_COLUMN_PICKER: 'OUTSIDE_STORY_COLUMN_PICKER',
+            INSIDE_STORY_COLUMN_PICKER: 'INSIDE_STORY_COLUMN_PICKER',
+            OUTSIDE_STORY_GRID: 'OUTSIDE_STORY_GRID',
+            INSIDE_STORY_GRID: 'INSIDE_STORY_GRID'
         },
         LABEL: {
             PI_TYPE: 'Portfolio Item Type',
@@ -23,6 +27,14 @@ Ext.define("TsConstants", {
         },
         SETTING: {
             WARNING_THRESHOLD: 'WARNING_THRESHOLD',
+            DEFAULT_DETAILS_FIELDS: [
+                'FormattedID',
+                'Name',
+                'ScheduleState',
+                'Owner',
+                'Project',
+                'Feature'
+            ]
         },
         FETCH: {
             PI: ['Project', 'Name', 'ObjectId'],

@@ -2,13 +2,13 @@
 Ext.define('TsSelfSufficiency', {
     extend: 'Ext.data.Model',
     fields: [
-        { name: 'InsideStoriesStore', type: 'auto' },
-        { name: 'OutsideStoriesStore', type: 'auto' },
-        { name: 'TotalStoryCount', type: 'int', defaultValue: 0 },
-        { name: 'TotalPoints', type: 'int', defaultValue: 0 },
-        { name: 'InsideStoryCount', type: 'int', defaultValue: 0 },
-        { name: 'InsideStoryPoints', type: 'int', defaultValue: 0 },
-        { name: 'OutsideStoryCount', type: 'int', defaultValue: 0 },
-        { name: 'OutsideStoryPoints', type: 'int', defaultValue: 0 },
+        { name: 'InsideStoriesFilter', type: 'auto' },
+        { name: 'OutsideStoriesFilter', type: 'auto' },
+        { name: 'TotalStoryCount', type: 'int', },
+        { name: 'TotalPoints', type: 'int', },
+        { name: 'InsideStoryCount', type: 'int', },
+        { name: 'InsideStoryPoints', type: 'int', },
+        { name: 'OutsideStoryCount', type: 'int', },
+        { name: 'OutsideStoryPoints', type: 'int', },
     ]
 })
