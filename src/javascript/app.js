@@ -140,8 +140,11 @@ Ext.define("CArABU.app.TSApp", {
                                     })
                                 },
                                 itemclick: function(tree, record) {
-                                    this.addCharts(record);
-                                    this.addDetails(record);
+                                    // Only draw the charts if data has loaded for the item
+                                    if (record.get('TotalStoryCount')) {
+                                        this.addCharts(record);
+                                        this.addDetails(record);
+                                    }
                                 }
                             }
                         }],
@@ -190,6 +193,12 @@ Ext.define("CArABU.app.TSApp", {
             success: function(store) {
                 detailsPanel.add({
                     xtype: 'panel',
+                    collapsible: true,
+                    layout: {
+                        type: 'vbox',
+                        align: 'stretch',
+                        padding: '0 5 5 5',
+                    },
                     title: TsConstants.LABEL.OUTSIDE_PROJECT + ' (' + record.get('OutsideStoryCount') + ')',
                     items: [{
                         xtype: 'rallygridboard',
@@ -204,7 +213,7 @@ Ext.define("CArABU.app.TSApp", {
                             ptype: 'rallygridboardfieldpicker',
                             headerPosition: 'left',
                             modelNames: ['HierarchicalRequirement'],
-                        }],
+                        }, ],
                         listeners: {
                             boxready: function(grid) {
                                 grid.setLoading(true);
@@ -233,6 +242,12 @@ Ext.define("CArABU.app.TSApp", {
             success: function(store) {
                 detailsPanel.add({
                     xtype: 'panel',
+                    collapsible: true,
+                    layout: {
+                        type: 'vbox',
+                        align: 'stretch',
+                        padding: '0 5 5 5',
+                    },
                     title: TsConstants.LABEL.INSIDE_PROJECT + ' (' + record.get('InsideStoryCount') + ')',
                     items: [{
                         xtype: 'rallygridboard',
