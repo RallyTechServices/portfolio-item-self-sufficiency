@@ -151,7 +151,8 @@ Ext.define('TsMetricsMgr', function() {
             fetch: TsConstants.FETCH.USER_STORY,
             autoLoad: false,
             enableHierarchy: false,
-            filters: filters
+            filters: filters,
+            enableRootLevelPostGet: true,
         }).then(function(store) {
             return loadAllData(store);
         });
