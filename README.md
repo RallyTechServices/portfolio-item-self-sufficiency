@@ -3,7 +3,7 @@
 ## Summary/Description
 
 ![Summary View](./images/summary.png "Summary View Example")
-![Details View](./images/details.png "Summary View Example")
+![Details View](./images/details.png "Details View Example")
 
 A portfolio item is considered 100% self-sufficient if all of its stories are assigned
 to projects at or below the selected project scope.
@@ -16,11 +16,6 @@ of stories inside or outside of the project tree.
 
 The minimum desired self-sufficiency threshold can be configured using an app setting.
 By default this is 80%.
-
-## Version History
-* 1.0.0 - Initial Version
-* 1.0.1 - Enabled scrollbars
-* 1.0.4 - Added Schedule State to Details grid
 
 ### First Load
 

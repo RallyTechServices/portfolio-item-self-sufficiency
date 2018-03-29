@@ -171,6 +171,10 @@ Ext.define("CArABU.app.TSApp", {
         var detailsPanel = this.down('#' + TsConstants.ID.DETAILS_PANEL);
         detailsPanel.removeAll();
 
+        var appHeight = this.getHeight();
+        // Workaround because rallytreegrid has zero height without explicit height setting
+        var gridHeight = (appHeight - 80) / 2;
+
         // For some reason, the rallygridboard is really unhappy if the same PI
         // is clicked again, it blanks all the rows. The workaround is to recreate
         // the store AND the grid each time an item is clicked. For this reason, the
@@ -202,12 +206,13 @@ Ext.define("CArABU.app.TSApp", {
                     title: TsConstants.LABEL.OUTSIDE_PROJECT + ' (' + record.get('OutsideStoryCount') + ')',
                     items: [{
                         xtype: 'rallygridboard',
-                        height: this.getHeight() / 2,
+                        height: gridHeight,
                         stateful: true,
                         stateId: TsConstants.ID.OUTSIDE_STORY_GRID,
                         gridConfig: {
                             store: store,
-                            columnCfgs: TsConstants.SETTING.DEFAULT_DETAILS_FIELDS
+                            columnCfgs: TsConstants.SETTING.DEFAULT_DETAILS_FIELDS,
+                            enableRanking: false,
                         },
                         plugins: [{
                             ptype: 'rallygridboardfieldpicker',
@@ -251,12 +256,13 @@ Ext.define("CArABU.app.TSApp", {
                     title: TsConstants.LABEL.INSIDE_PROJECT + ' (' + record.get('InsideStoryCount') + ')',
                     items: [{
                         xtype: 'rallygridboard',
-                        height: this.getHeight() / 2,
+                        height: gridHeight,
                         stateful: true,
                         stateId: TsConstants.ID.INSIDE_STORY_GRID,
                         gridConfig: {
                             store: store,
-                            columnCfgs: TsConstants.SETTING.DEFAULT_DETAILS_FIELDS
+                            columnCfgs: TsConstants.SETTING.DEFAULT_DETAILS_FIELDS,
+                            enableRanking: false
                         },
                         plugins: [{
                             ptype: 'rallygridboardfieldpicker',
@@ -294,7 +300,10 @@ Ext.define("CArABU.app.TSApp", {
                     borderColor: '#000000',
                     dataLabels: {
                         formatter: pointFormatter,
-                        //distance: -30
+                        //distance: -30,
+                        style: {
+                            width: '150px'
+                        }
                     },
                     data: [{
                         name: TsConstants.LABEL.INSIDE_PROJECT,
