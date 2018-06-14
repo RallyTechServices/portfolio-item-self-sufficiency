@@ -83,6 +83,9 @@ Ext.define("CArABU.app.TSApp", {
         if (piType) {
             Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
                 models: [piType.get('TypePath')],
+                context: {
+                    projectScopeUp: true
+                },
                 fetch: TsConstants.FETCH.PI,
                 autoLoad: true,
                 enableHierarchy: true
@@ -365,7 +368,10 @@ Ext.define("CArABU.app.TSApp", {
             else {
                 var warningThreshold = this.getSetting(TsConstants.SETTING.WARNING_THRESHOLD);
                 var classes = '';
-                if (result < warningThreshold) {
+                if (result == 0) {
+                    classes = 'unowned';
+                }
+                else if (result < warningThreshold) {
                     classes = 'caution'
                 }
                 result = '<div class="' + classes + '">' + result + '%</div>';
