@@ -97,6 +97,7 @@ Ext.define("CArABU.app.TSApp", {
             var store = Ext.create('Rally.data.wsapi.Store', {
                 model: 'User Story',
                 autoLoad: false,
+                limit: Infinity,
                 context: {
                     projectScopeUp: false,
                     projectScopeDown: true,
@@ -105,59 +106,95 @@ Ext.define("CArABU.app.TSApp", {
                     property: 'DirectChildrenCount',
                     value: 0
                 }],
-                fetch: [lowestPiName, 'ObjectID'],
-                listeners: {
-                    scope: this,
-                    load: function(store, data, success) {
-                        // TODO (tj) pagination isn't helping
-                        if (this.hasMorePages(store)) {
-                            store.nextPage();
-                            // Do work while waiting for data load
-                            piOids = this.processStories(lowestPiName, piOids, data);
-                        }
-                        else {
-                            piOids = this.processStories(lowestPiName, piOids, data);
+                fetch: [lowestPiName, 'ObjectID', 'Parent'],
+            });
+            store.load().then({
+                scope: this,
+                success: function(records) {
+                    var parentPiTypeName = this.piTypeDefs[0].get('Name');
+                    if (parentPiTypeName == piType.get('Name')) {
+                        // Level 0, aka 'Feature'
+                        piOids = this.getOids(parentPiTypeName, records, false);
+                        this.loadPortfolioItems(piType, piOids);
+                    }
+                    else {
+                        var grandParentPiTypeName = this.piTypeDefs[1].get('Name');
+                        piOids = this.getOids(parentPiTypeName, records, true);
+                        if (grandParentPiTypeName == piType.get('Name')) {
                             this.loadPortfolioItems(piType, piOids);
                         }
-
+                        else {
+                            // Need next level above
+                            this.getPis(1, piType, piOids);
+                        }
                     }
                 }
-            });
-            store.load();
+            })
         }
     },
 
-    /***
-     * TODO (tj) separate module
-     */
-    hasMorePages: function(store) {
-        var total = store.getTotalCount();
-        var totalPages = Math.ceil(total / store.pageSize);
-        return totalPages > store.currentPage;
+    getPis: function(currentPiTypeIndex, selectedPiType, piOids) {
+        // Load the next level up Portfolio Items
+        var currentPiTypeName = this.piTypeDefs[currentPiTypeIndex].get('TypePath');
+        var store = Ext.create('Rally.data.wsapi.Store', {
+            model: currentPiTypeName,
+            autoLoad: false,
+            limit: Infinity,
+            fetch: ['ObjectID', 'Parent'],
+            context: {
+                projectScopeUp: true,
+                projectScopeDown: true
+            },
+            enablePostGet: true,
+            filters: this.getOidsFilter(piOids)
+        });
+        store.load().then({
+            scope: this,
+            success: function(records) {
+                var parentPiTypeName = this.piTypeDefs[currentPiTypeIndex + 1].get('Name');
+                piOids = this.getOids('Parent', records, false);
+                if (parentPiTypeName == selectedPiType.get('Name')) {
+                    this.loadPortfolioItems(selectedPiType, piOids);
+                }
+                else {
+                    // Need next level above
+                    this.getPis(currentPiTypeIndex + 1, selectedPiType, piOids);
+                }
+            }
+        });
     },
-    /****/
 
-    processStories: function(piTypeName, piOids, stories) {
+    getOids: function(piTypeName, stories, getParent) {
         var oids = [];
         _.forEach(stories, function(story) {
             try {
-                oids.push(story.get(piTypeName).ObjectID);
+                var pi = story.get(piTypeName);
+                if (getParent) {
+                    oids.push(story.get(piTypeName).Parent.ObjectID);
+                }
+                else {
+                    oids.push(story.get(piTypeName).ObjectID);
+                }
             }
             catch (ex) {
                 //Ignore stories without Features
             }
         });
-        return _.uniq(piOids.concat(oids));
+        return _.uniq(oids);
     },
 
-    loadPortfolioItems: function(piType, oids) {
+    getOidsFilter: function(oids) {
         var queries = _.map(oids, function(oid) {
             return {
                 property: 'ObjectID',
                 value: oid
             }
         });
-        var filter = Rally.data.wsapi.Filter.or(queries);
+        return Rally.data.wsapi.Filter.or(queries);
+    },
+
+    loadPortfolioItems: function(piType, piOids) {
+        var filter = this.getOidsFilter(piOids);
         Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
             models: [piType.get('TypePath')],
             context: {
