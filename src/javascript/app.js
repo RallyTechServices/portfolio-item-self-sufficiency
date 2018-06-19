@@ -59,7 +59,17 @@ Ext.define("CArABU.app.TSApp", {
     },
 
     launch: function() {
-        this.addPiTypeSelector();
+        this.getPiTypes();
+    },
+
+    getPiTypes: function() {
+        Rally.data.util.PortfolioItemHelper.getPortfolioItemTypes().then({
+            scope: this,
+            success: function(records) {
+                this.piTypeDefs = records;
+                this.addPiTypeSelector();
+            }
+        })
     },
 
     addPiTypeSelector: function() {
@@ -82,7 +92,8 @@ Ext.define("CArABU.app.TSApp", {
     addItemSelector: function(piType) {
         if (piType) {
             // Get all leaf user stories that belong to this project or its descendents
-            var featureOids = [];
+            var piOids = [];
+            var lowestPiName = this.piTypeDefs[0].get('Name');
             var store = Ext.create('Rally.data.wsapi.Store', {
                 model: 'User Story',
                 autoLoad: false,
@@ -94,19 +105,19 @@ Ext.define("CArABU.app.TSApp", {
                     property: 'DirectChildrenCount',
                     value: 0
                 }],
-                fetch: ['Feature', 'ObjectID'], // TODO (tj) Support PI levels above Feature
+                fetch: [lowestPiName, 'ObjectID'],
                 listeners: {
                     scope: this,
                     load: function(store, data, success) {
-
+                        // TODO (tj) pagination isn't helping
                         if (this.hasMorePages(store)) {
                             store.nextPage();
                             // Do work while waiting for data load
-                            featureOids = this.processStories('Feature', featureOids, data);
+                            piOids = this.processStories(lowestPiName, piOids, data);
                         }
                         else {
-                            featureOids = this.processStories('Feature', featureOids, data);
-                            this.loadPortfolioItems(piType, featureOids);
+                            piOids = this.processStories(lowestPiName, piOids, data);
+                            this.loadPortfolioItems(piType, piOids);
                         }
 
                     }
