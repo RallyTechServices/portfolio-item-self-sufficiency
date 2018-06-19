@@ -11,7 +11,7 @@ Ext.define("TsConstants", {
             OUTSIDE_STORY_COLUMN_PICKER: 'OUTSIDE_STORY_COLUMN_PICKER',
             INSIDE_STORY_COLUMN_PICKER: 'INSIDE_STORY_COLUMN_PICKER',
             OUTSIDE_STORY_GRID: 'OUTSIDE_STORY_GRID',
-            INSIDE_STORY_GRID: 'INSIDE_STORY_GRID'
+                INSIDE_STORY_GRID: 'INSIDE_STORY_GRID'
         },
         LABEL: {
             PI_TYPE: 'Portfolio Item Type',

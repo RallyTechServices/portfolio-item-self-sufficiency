@@ -81,80 +81,148 @@ Ext.define("CArABU.app.TSApp", {
 
     addItemSelector: function(piType) {
         if (piType) {
-            Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
-                models: [piType.get('TypePath')],
+            // Get all leaf user stories that belong to this project or its descendents
+            var featureOids = [];
+            var store = Ext.create('Rally.data.wsapi.Store', {
+                model: 'User Story',
+                autoLoad: false,
                 context: {
-                    projectScopeUp: true
+                    projectScopeUp: false,
+                    projectScopeDown: true,
                 },
-                fetch: TsConstants.FETCH.PI,
-                autoLoad: true,
-                enableHierarchy: true
-            }).then({
-                scope: this,
-                success: function(store) {
-                    var navPanel = this.down('#' + TsConstants.ID.SELECTION_AREA);
-                    if (this.itemSelector) {
-                        navPanel.remove(this.itemSelector);
+                filters: [{
+                    property: 'DirectChildrenCount',
+                    value: 0
+                }],
+                fetch: ['Feature', 'ObjectID'], // TODO (tj) Support PI levels above Feature
+                listeners: {
+                    scope: this,
+                    load: function(store, data, success) {
+
+                        if (this.hasMorePages(store)) {
+                            store.nextPage();
+                            // Do work while waiting for data load
+                            featureOids = this.processStories('Feature', featureOids, data);
+                        }
+                        else {
+                            featureOids = this.processStories('Feature', featureOids, data);
+                            this.loadPortfolioItems(piType, featureOids);
+                        }
+
                     }
-                    this.itemSelector = navPanel.add({
-                        items: [{
-                            xtype: 'rallytreegrid',
-                            columnCfgs: [
-                                'Name',
-                                'Project',
-                                {
-                                    text: 'Self-Sufficiency By Story Count',
-                                    dataIndex: 'ObjectID',
-                                    sortable: false,
-                                    scope: this,
-                                    renderer: function(value, meta, record) {
-                                        var part = record.get('InsideStoryCount');
-                                        var whole = record.get('TotalStoryCount');
-                                        return this.percentRenderer(part, whole);
-                                    }
-                                },
-                                {
-                                    text: 'Self-Sufficiency By Story Points',
-                                    dataIndex: 'ObjectID',
-                                    sortable: false,
-                                    scope: this,
-                                    renderer: function(value, meta, record) {
-                                        var part = record.get('InsideStoryPoints');
-                                        var whole = record.get('TotalPoints');
-                                        return this.percentRenderer(part, whole);
-                                    }
-                                }
-                            ],
-                            enableBulkEdit: false,
-                            enableColumnHide: true,
-                            enableColumnMove: true,
-                            enableColumnResize: true,
-                            enableEditing: false,
-                            enableInlineAdd: false,
-                            enableRanking: false,
-                            shouldShowRowActionsColumn: true,
-                            store: store,
-                            fetch: ['ObjectID'],
-                            listeners: {
-                                scope: this,
-                                load: function(store, node, records) {
-                                    _.forEach(records, function(record) {
-                                        TsMetricsMgr.setMetrics(record);
-                                    })
-                                },
-                                itemclick: function(tree, record) {
-                                    // Only draw the charts if data has loaded for the item
-                                    if (record.get('TotalStoryCount')) {
-                                        this.addCharts(record);
-                                        this.addDetails(record);
-                                    }
-                                }
-                            }
-                        }],
-                    });
                 }
             });
+            store.load();
         }
+    },
+
+    /***
+     * TODO (tj) separate module
+     */
+    hasMorePages: function(store) {
+        var total = store.getTotalCount();
+        var totalPages = Math.ceil(total / store.pageSize);
+        return totalPages > store.currentPage;
+    },
+    /****/
+
+    processStories: function(piTypeName, piOids, stories) {
+        var oids = [];
+        _.forEach(stories, function(story) {
+            try {
+                oids.push(story.get(piTypeName).ObjectID);
+            }
+            catch (ex) {
+                //Ignore stories without Features
+            }
+        });
+        return _.uniq(piOids.concat(oids));
+    },
+
+    loadPortfolioItems: function(piType, oids) {
+        var queries = _.map(oids, function(oid) {
+            return {
+                property: 'ObjectID',
+                value: oid
+            }
+        });
+        var filter = Rally.data.wsapi.Filter.or(queries);
+        Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
+            models: [piType.get('TypePath')],
+            context: {
+                projectScopeUp: true,
+                projectScopeDown: true,
+            },
+            filters: filter,
+            enableRootLevelPostGet: true,
+            fetch: TsConstants.FETCH.PI,
+            autoLoad: true,
+            enableHierarchy: true
+        }).then({
+            scope: this,
+            success: function(store) {
+                var navPanel = this.down('#' + TsConstants.ID.SELECTION_AREA);
+                if (this.itemSelector) {
+                    navPanel.remove(this.itemSelector);
+                }
+                this.itemSelector = navPanel.add({
+                    items: [{
+                        xtype: 'rallytreegrid',
+                        columnCfgs: [
+                            'Name',
+                            'Project',
+                            {
+                                text: 'Self-Sufficiency By Story Count',
+                                dataIndex: 'ObjectID',
+                                sortable: false,
+                                scope: this,
+                                renderer: function(value, meta, record) {
+                                    var part = record.get('InsideStoryCount');
+                                    var whole = record.get('TotalStoryCount');
+                                    return this.percentRenderer(part, whole);
+                                }
+                            },
+                            {
+                                text: 'Self-Sufficiency By Story Points',
+                                dataIndex: 'ObjectID',
+                                sortable: false,
+                                scope: this,
+                                renderer: function(value, meta, record) {
+                                    var part = record.get('InsideStoryPoints');
+                                    var whole = record.get('TotalPoints');
+                                    return this.percentRenderer(part, whole);
+                                }
+                            }
+                        ],
+                        enableBulkEdit: false,
+                        enableColumnHide: true,
+                        enableColumnMove: true,
+                        enableColumnResize: true,
+                        enableEditing: false,
+                        enableInlineAdd: false,
+                        enableRanking: false,
+                        shouldShowRowActionsColumn: true,
+                        store: store,
+                        fetch: ['ObjectID'],
+                        listeners: {
+                            scope: this,
+                            load: function(store, node, records) {
+                                _.forEach(records, function(record) {
+                                    TsMetricsMgr.setMetrics(record);
+                                })
+                            },
+                            itemclick: function(tree, record) {
+                                // Only draw the charts if data has loaded for the item
+                                if (record.get('TotalStoryCount')) {
+                                    this.addCharts(record);
+                                    this.addDetails(record);
+                                }
+                            }
+                        }
+                    }],
+                });
+            }
+        });
     },
 
     addCharts: function(record) {
