@@ -92,6 +92,7 @@ Ext.define("CArABU.app.TSApp", {
     addItemSelector: function(piType) {
         if (piType) {
             // Get all leaf user stories that belong to this project or its descendents
+            // From those, collect the list of Features, Epics, etc in which the current project has stories
             var piOids = [];
             var lowestPiName = this.piTypeDefs[0].get('Name');
             var store = Ext.create('Rally.data.wsapi.Store', {
@@ -111,6 +112,11 @@ Ext.define("CArABU.app.TSApp", {
             store.load().then({
                 scope: this,
                 success: function(records) {
+                    // Initial load of stories has 'Feature' and 'Feature.Parent' so if the desired
+                    // pi type level is either Feature or Epic, we already have the ObjectIDs for those
+                    // pis. If the desired level is higher than Epic, then we must fetch the Epics using
+                    // the ObjectIDs we have from Feature.Parent.ObjectID, then go one PI level at a time
+                    // using each PI's 'Parent' reference.
                     var parentPiTypeName = this.piTypeDefs[0].get('Name');
                     if (parentPiTypeName == piType.get('Name')) {
                         // Level 0, aka 'Feature'
@@ -121,10 +127,11 @@ Ext.define("CArABU.app.TSApp", {
                         var grandParentPiTypeName = this.piTypeDefs[1].get('Name');
                         piOids = this.getOids(parentPiTypeName, records, true);
                         if (grandParentPiTypeName == piType.get('Name')) {
+                            // Level 1, aka 'Epic'
                             this.loadPortfolioItems(piType, piOids);
                         }
                         else {
-                            // Need next level above
+                            // Need next level above Epic, so load the Epics to get their Parent references
                             this.getPis(1, piType, piOids);
                         }
                     }
@@ -154,30 +161,37 @@ Ext.define("CArABU.app.TSApp", {
                 var parentPiTypeName = this.piTypeDefs[currentPiTypeIndex + 1].get('Name');
                 piOids = this.getOids('Parent', records, false);
                 if (parentPiTypeName == selectedPiType.get('Name')) {
+                    // The desired PI level is the 'Parent' of the loaded PIs. Load the parents
+                    // using the 'Parent' ObjectIDs.
                     this.loadPortfolioItems(selectedPiType, piOids);
                 }
                 else {
-                    // Need next level above
+                    // Need next level above the Parent. Load the parents by ObjectID to get
+                    // their parent reference (recursive)
                     this.getPis(currentPiTypeIndex + 1, selectedPiType, piOids);
                 }
             }
         });
     },
 
-    getOids: function(piTypeName, stories, getParent) {
+    /**
+     * Given an artifact, return the ObjectID of the 'piTypeName' (aka Feature).
+     * If 'getParent' is set, return Parent.ObjectID of the 'piTypeName'.
+     */
+    getOids: function(piTypeName, artifacts, getParent) {
         var oids = [];
-        _.forEach(stories, function(story) {
+        _.forEach(artifacts, function(artifact) {
             try {
-                var pi = story.get(piTypeName);
+                var pi = artifact.get(piTypeName);
                 if (getParent) {
-                    oids.push(story.get(piTypeName).Parent.ObjectID);
+                    oids.push(artifact.get(piTypeName).Parent.ObjectID);
                 }
                 else {
-                    oids.push(story.get(piTypeName).ObjectID);
+                    oids.push(artifact.get(piTypeName).ObjectID);
                 }
             }
             catch (ex) {
-                //Ignore stories without Features
+                //Ignore artifact without a Feature or Parent reference
             }
         });
         return _.uniq(oids);
@@ -194,18 +208,23 @@ Ext.define("CArABU.app.TSApp", {
     },
 
     loadPortfolioItems: function(piType, piOids) {
-        var filter = this.getOidsFilter(piOids);
-        Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
-            models: [piType.get('TypePath')],
-            context: {
-                projectScopeUp: true,
-                projectScopeDown: true,
-            },
-            filters: filter,
-            enableRootLevelPostGet: true,
-            fetch: TsConstants.FETCH.PI,
-            autoLoad: true,
-            enableHierarchy: true
+        TsMetricsMgr.getPisInProjectFilter().then({
+            scope: this,
+            success: function(pisInProjectFilter) {
+                var oidsFilter = this.getOidsFilter(piOids);
+                return Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
+                    models: [piType.get('TypePath')],
+                    context: {
+                        projectScopeUp: true,
+                        projectScopeDown: true,
+                    },
+                    filters: pisInProjectFilter.or(oidsFilter),
+                    enableRootLevelPostGet: true,
+                    fetch: TsConstants.FETCH.PI,
+                    autoLoad: true,
+                    enableHierarchy: true
+                })
+            }
         }).then({
             scope: this,
             success: function(store) {
@@ -218,9 +237,12 @@ Ext.define("CArABU.app.TSApp", {
                         xtype: 'rallytreegrid',
                         columnCfgs: [
                             'Name',
-                            'Project',
                             {
-                                text: 'Self-Sufficiency By Story Count',
+                                text: TsConstants.LABEL.PROJECT,
+                                dataIndex: 'Project'
+                            },
+                            {
+                                text: TsConstants.LABEL.OWNERSHIP_BY_COUNT,
                                 dataIndex: 'ObjectID',
                                 sortable: false,
                                 scope: this,
@@ -231,7 +253,7 @@ Ext.define("CArABU.app.TSApp", {
                                 }
                             },
                             {
-                                text: 'Self-Sufficiency By Story Points',
+                                text: TsConstants.LABEL.OWNERSHIP_BY_POINTS,
                                 dataIndex: 'ObjectID',
                                 sortable: false,
                                 scope: this,
