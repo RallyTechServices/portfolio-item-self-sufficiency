@@ -6,12 +6,23 @@
 ![Details View](./images/details.png "Details View Example")
 
 A portfolio item is considered 100% self-sufficient if all of its stories are assigned
-to projects at or below the selected project scope.
+to projects at or below the selected project scope. Show portfolio items that are owned
+by the current project (or its descendents) as well as portfolio items that contain **stories**
+owned by the current project (or its descendents).
 
-For a selected project scope, determine how many leaf stories for each portfolio item are
-assigned to projects within the selected project or its descendents. Compare that with
-stories for the portfolio item are assigned to projects outside of the selected project
-or its descendents. The results are presented in a summary pie chart and a detailed listing
+For a selected project scope:
+1. Identify all portfolio items owned by that project or its descendents
+2. Identify all portfolio items that have stories owned by that project or its descendents
+(even if the portfolio item iteself is owned outside of the project hierarchy)
+3. For each portfolio item, count how many leaf stories are
+assigned to projects within the selected project or its descendents, and how many are assigned
+to projects outside the selected project or its descendents.
+4. Calculate the percent of stories owned inside the project hierarchy relative to the total
+number of stories under the portfolio item.
+5. Calculate the percent of story points owned inside the project hierarchy relative to the total
+number of points under the portfolio item.
+
+The results are presented in a summary pie chart and a detailed listing
 of stories inside or outside of the project tree.
 
 The minimum desired self-sufficiency threshold can be configured using an app setting.

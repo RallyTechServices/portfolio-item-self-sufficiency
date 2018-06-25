@@ -59,7 +59,17 @@ Ext.define("CArABU.app.TSApp", {
     },
 
     launch: function() {
-        this.addPiTypeSelector();
+        this.getPiTypes();
+    },
+
+    getPiTypes: function() {
+        Rally.data.util.PortfolioItemHelper.getPortfolioItemTypes().then({
+            scope: this,
+            success: function(records) {
+                this.piTypeDefs = records;
+                this.addPiTypeSelector();
+            }
+        })
     },
 
     addPiTypeSelector: function() {
@@ -81,80 +91,208 @@ Ext.define("CArABU.app.TSApp", {
 
     addItemSelector: function(piType) {
         if (piType) {
-            Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
-                models: [piType.get('TypePath')],
+            // Get all leaf user stories that belong to this project or its descendents
+            // From those, collect the list of Features, Epics, etc in which the current project has stories
+            var piOids = [];
+            var lowestPiName = this.piTypeDefs[0].get('Name');
+            var store = Ext.create('Rally.data.wsapi.Store', {
+                model: 'User Story',
+                autoLoad: false,
+                limit: Infinity,
                 context: {
-                    projectScopeUp: true
+                    projectScopeUp: false,
+                    projectScopeDown: true,
                 },
-                fetch: TsConstants.FETCH.PI,
-                autoLoad: true,
-                enableHierarchy: true
-            }).then({
+                filters: [{
+                    property: 'DirectChildrenCount',
+                    value: 0
+                }],
+                fetch: [lowestPiName, 'ObjectID', 'Parent'],
+            });
+            store.load().then({
                 scope: this,
-                success: function(store) {
-                    var navPanel = this.down('#' + TsConstants.ID.SELECTION_AREA);
-                    if (this.itemSelector) {
-                        navPanel.remove(this.itemSelector);
+                success: function(records) {
+                    // Initial load of stories has 'Feature' and 'Feature.Parent' so if the desired
+                    // pi type level is either Feature or Epic, we already have the ObjectIDs for those
+                    // pis. If the desired level is higher than Epic, then we must fetch the Epics using
+                    // the ObjectIDs we have from Feature.Parent.ObjectID, then go one PI level at a time
+                    // using each PI's 'Parent' reference.
+                    var parentPiTypeName = this.piTypeDefs[0].get('Name');
+                    if (parentPiTypeName == piType.get('Name')) {
+                        // Level 0, aka 'Feature'
+                        piOids = this.getOids(parentPiTypeName, records, false);
+                        this.loadPortfolioItems(piType, piOids);
                     }
-                    this.itemSelector = navPanel.add({
-                        items: [{
-                            xtype: 'rallytreegrid',
-                            columnCfgs: [
-                                'Name',
-                                'Project',
-                                {
-                                    text: 'Self-Sufficiency By Story Count',
-                                    dataIndex: 'ObjectID',
-                                    sortable: false,
-                                    scope: this,
-                                    renderer: function(value, meta, record) {
-                                        var part = record.get('InsideStoryCount');
-                                        var whole = record.get('TotalStoryCount');
-                                        return this.percentRenderer(part, whole);
-                                    }
-                                },
-                                {
-                                    text: 'Self-Sufficiency By Story Points',
-                                    dataIndex: 'ObjectID',
-                                    sortable: false,
-                                    scope: this,
-                                    renderer: function(value, meta, record) {
-                                        var part = record.get('InsideStoryPoints');
-                                        var whole = record.get('TotalPoints');
-                                        return this.percentRenderer(part, whole);
-                                    }
-                                }
-                            ],
-                            enableBulkEdit: false,
-                            enableColumnHide: true,
-                            enableColumnMove: true,
-                            enableColumnResize: true,
-                            enableEditing: false,
-                            enableInlineAdd: false,
-                            enableRanking: false,
-                            shouldShowRowActionsColumn: true,
-                            store: store,
-                            fetch: ['ObjectID'],
-                            listeners: {
+                    else {
+                        var grandParentPiTypeName = this.piTypeDefs[1].get('Name');
+                        piOids = this.getOids(parentPiTypeName, records, true);
+                        if (grandParentPiTypeName == piType.get('Name')) {
+                            // Level 1, aka 'Epic'
+                            this.loadPortfolioItems(piType, piOids);
+                        }
+                        else {
+                            // Need next level above Epic, so load the Epics to get their Parent references
+                            this.getPis(1, piType, piOids);
+                        }
+                    }
+                }
+            })
+        }
+    },
+
+    getPis: function(currentPiTypeIndex, selectedPiType, piOids) {
+        // Load the next level up Portfolio Items
+        var currentPiTypeName = this.piTypeDefs[currentPiTypeIndex].get('TypePath');
+        var store = Ext.create('Rally.data.wsapi.Store', {
+            model: currentPiTypeName,
+            autoLoad: false,
+            limit: Infinity,
+            fetch: ['ObjectID', 'Parent'],
+            context: {
+                projectScopeUp: true,
+                projectScopeDown: true
+            },
+            enablePostGet: true,
+            filters: this.getOidsFilter(piOids)
+        });
+        store.load().then({
+            scope: this,
+            success: function(records) {
+                var parentPiTypeName = this.piTypeDefs[currentPiTypeIndex + 1].get('Name');
+                piOids = this.getOids('Parent', records, false);
+                if (parentPiTypeName == selectedPiType.get('Name')) {
+                    // The desired PI level is the 'Parent' of the loaded PIs. Load the parents
+                    // using the 'Parent' ObjectIDs.
+                    this.loadPortfolioItems(selectedPiType, piOids);
+                }
+                else {
+                    // Need next level above the Parent. Load the parents by ObjectID to get
+                    // their parent reference (recursive)
+                    this.getPis(currentPiTypeIndex + 1, selectedPiType, piOids);
+                }
+            }
+        });
+    },
+
+    /**
+     * Given an artifact, return the ObjectID of the 'piTypeName' (aka Feature).
+     * If 'getParent' is set, return Parent.ObjectID of the 'piTypeName'.
+     */
+    getOids: function(piTypeName, artifacts, getParent) {
+        var oids = [];
+        _.forEach(artifacts, function(artifact) {
+            try {
+                var pi = artifact.get(piTypeName);
+                if (getParent) {
+                    oids.push(artifact.get(piTypeName).Parent.ObjectID);
+                }
+                else {
+                    oids.push(artifact.get(piTypeName).ObjectID);
+                }
+            }
+            catch (ex) {
+                //Ignore artifact without a Feature or Parent reference
+            }
+        });
+        return _.uniq(oids);
+    },
+
+    getOidsFilter: function(oids) {
+        var queries = _.map(oids, function(oid) {
+            return {
+                property: 'ObjectID',
+                value: oid
+            }
+        });
+        return Rally.data.wsapi.Filter.or(queries);
+    },
+
+    loadPortfolioItems: function(piType, piOids) {
+        TsMetricsMgr.getPisInProjectFilter().then({
+            scope: this,
+            success: function(pisInProjectFilter) {
+                var oidsFilter = this.getOidsFilter(piOids);
+                return Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
+                    models: [piType.get('TypePath')],
+                    context: {
+                        projectScopeUp: true,
+                        projectScopeDown: true,
+                    },
+                    filters: pisInProjectFilter.or(oidsFilter),
+                    enableRootLevelPostGet: true,
+                    fetch: TsConstants.FETCH.PI,
+                    autoLoad: true,
+                    enableHierarchy: true
+                })
+            }
+        }).then({
+            scope: this,
+            success: function(store) {
+                var navPanel = this.down('#' + TsConstants.ID.SELECTION_AREA);
+                if (this.itemSelector) {
+                    navPanel.remove(this.itemSelector);
+                }
+                this.itemSelector = navPanel.add({
+                    items: [{
+                        xtype: 'rallytreegrid',
+                        columnCfgs: [
+                            'Name',
+                            {
+                                text: TsConstants.LABEL.PROJECT,
+                                dataIndex: 'Project'
+                            },
+                            {
+                                text: TsConstants.LABEL.OWNERSHIP_BY_COUNT,
+                                dataIndex: 'ObjectID',
+                                sortable: false,
                                 scope: this,
-                                load: function(store, node, records) {
-                                    _.forEach(records, function(record) {
-                                        TsMetricsMgr.setMetrics(record);
-                                    })
-                                },
-                                itemclick: function(tree, record) {
-                                    // Only draw the charts if data has loaded for the item
-                                    if (record.get('TotalStoryCount')) {
-                                        this.addCharts(record);
-                                        this.addDetails(record);
-                                    }
+                                renderer: function(value, meta, record) {
+                                    var part = record.get('InsideStoryCount');
+                                    var whole = record.get('TotalStoryCount');
+                                    return this.percentRenderer(part, whole);
+                                }
+                            },
+                            {
+                                text: TsConstants.LABEL.OWNERSHIP_BY_POINTS,
+                                dataIndex: 'ObjectID',
+                                sortable: false,
+                                scope: this,
+                                renderer: function(value, meta, record) {
+                                    var part = record.get('InsideStoryPoints');
+                                    var whole = record.get('TotalPoints');
+                                    return this.percentRenderer(part, whole);
                                 }
                             }
-                        }],
-                    });
-                }
-            });
-        }
+                        ],
+                        enableBulkEdit: false,
+                        enableColumnHide: true,
+                        enableColumnMove: true,
+                        enableColumnResize: true,
+                        enableEditing: false,
+                        enableInlineAdd: false,
+                        enableRanking: false,
+                        shouldShowRowActionsColumn: true,
+                        store: store,
+                        fetch: ['ObjectID'],
+                        listeners: {
+                            scope: this,
+                            load: function(store, node, records) {
+                                _.forEach(records, function(record) {
+                                    TsMetricsMgr.setMetrics(record);
+                                })
+                            },
+                            itemclick: function(tree, record) {
+                                // Only draw the charts if data has loaded for the item
+                                if (record.get('TotalStoryCount')) {
+                                    this.addCharts(record);
+                                    this.addDetails(record);
+                                }
+                            }
+                        }
+                    }],
+                });
+            }
+        });
     },
 
     addCharts: function(record) {

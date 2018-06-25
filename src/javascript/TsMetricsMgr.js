@@ -2,8 +2,23 @@
 Ext.define('TsMetricsMgr', function() {
     return {
         statics: {
-            setMetrics: setMetrics
+            setMetrics: setMetrics,
+            getPisInProjectFilter: getPisInProjectFilter
         }
+    }
+
+    function getPisInProjectFilter() {
+        var projectOid = Rally.getApp().getContext().getProject().ObjectID;
+        return getDescendentProjects(projectOid)
+            .then({
+                scope: this,
+                success: function(projects) {
+                    var oids = _.map(projects, function(project) {
+                        return project.get('ObjectID');
+                    });
+                    return getStoriesFilter(oids, true);
+                }
+            })
     }
 
     function setMetrics(portfolioItem) {

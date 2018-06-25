@@ -15,15 +15,18 @@ Ext.define("TsConstants", {
         },
         LABEL: {
             PI_TYPE: 'Portfolio Item Type',
-            WARNING_THRESHOLD: 'Minimum Desired Self-Sufficiency',
-            PROJECT_SELF_SUFFICIENCY: 'Project Self-Sufficiency',
+            WARNING_THRESHOLD: 'Minimum Desired Owned by Current Project',
+            PROJECT_SELF_SUFFICIENCY: 'For Current Project',
             INSIDE_PROJECT: 'Inside of Project',
             OUTSIDE_PROJECT: 'Outside of Project',
             BY_POINTS: 'Story Points',
             BY_COUNT: 'Story Count',
             SELECT_ITEM: 'Select an item on the left...',
             SUMMARY_PANEL: 'Summary',
-            DETAILS_PANEL: 'Details'
+            DETAILS_PANEL: 'Details',
+            PROJECT: 'Owning Project',
+            OWNERSHIP_BY_COUNT: 'Story Count In Current Project',
+            OWNERSHIP_BY_POINTS: 'Story Points In Current Project'
         },
         SETTING: {
             WARNING_THRESHOLD: 'WARNING_THRESHOLD',
