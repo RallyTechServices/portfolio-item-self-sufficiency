@@ -8,6 +8,7 @@
     "deploy:watch": "nodemon --exec grunt deploy",
     "deploy-pretty:watch": "nodemon --exec grunt deploy-pretty",
     "deploy-debugsdk:watch": "nodemon --exec grunt deploy-debugsdk",
+    "preversion": "grunt ugly",
     "postversion": "git push && git push --tags"
   },
   "dependencies": {},
