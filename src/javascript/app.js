@@ -259,7 +259,7 @@ Ext.define("CArABU.app.TSApp", {
                                 ptype: 'rallygridboardinlinefiltercontrol',
                                 headerPosition: 'left',
                                 inlineFilterButtonConfig: {
-                                    modelNames: ['User Story', piType.get('TypePath')],
+                                    modelNames: [piType.get('TypePath')],
                                     filterChildren: true,
                                     stateful: true,
                                     stateId: this.getContext().getScopedStateId('filter'),
