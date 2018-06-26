@@ -1,7 +1,7 @@
 {
   "_comment": "This file is used by grunt",
   "name": "tsabc",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "scripts": {
     "debug": "grunt debug",
     "debug:watch": "nodemon --exec grunt debug",
@@ -11,7 +11,9 @@
     "preversion": "grunt ugly",
     "postversion": "git push origin master && git push origin master --tags"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@agile-central-technical-services/utils-treegrid-derived-columns": "^1.0.0"
+  },
   "devDependencies": {
     "grunt": "~1.0.1",
     "grunt-cli": "1.2.0",

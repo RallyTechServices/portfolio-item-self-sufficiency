@@ -2,6 +2,10 @@
 # yarn lockfile v1
 
 
+"@agile-central-technical-services/utils-treegrid-derived-columns@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@agile-central-technical-services/utils-treegrid-derived-columns/-/utils-treegrid-derived-columns-1.0.0.tgz#0484ab0b032e5e088f8b6c93ad75d3bf53b74def"
+
 "@sinonjs/formatio@^2.0.0":
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/@sinonjs/formatio/-/formatio-2.0.0.tgz#84db7e9eb5531df18a8c5e0bfb6e449e55e654b2"
