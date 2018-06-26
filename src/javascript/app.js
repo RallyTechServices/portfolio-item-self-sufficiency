@@ -285,6 +285,12 @@ Ext.define("CArABU.app.TSApp", {
                                 sharedViewConfig: {
                                     fieldLabel: 'View:',
                                     labelWidth: 40,
+                                    defaultViews: _.map(this.getDefaultViews(), function(view) {
+                                        Ext.apply(view, {
+                                            Value: Ext.JSON.encode(view.Value, true)
+                                        });
+                                        return view;
+                                    }, this),
                                 }
                             }
                         ],
@@ -324,6 +330,27 @@ Ext.define("CArABU.app.TSApp", {
         });
     },
 
+    getDefaultViews: function() {
+        return [{
+            Name: 'Default View',
+            identifier: 1,
+            Value: {
+                toggleState: 'grid',
+                fields: this.getDefaultFields()
+            }
+        }];
+    },
+
+    getDefaultFields: function() {
+        return [
+            'Name',
+            {
+                text: TsConstants.LABEL.PROJECT,
+                dataIndex: 'Project'
+            }
+        ]
+    },
+
     onViewChange: function() {
         this.gridFilters = this.down('rallyinlinefilterbutton').getWsapiFilter();
         this.addPiTypeSelector();
@@ -331,13 +358,7 @@ Ext.define("CArABU.app.TSApp", {
 
     getColumnCfgs: function() {
         // Currently mostly derived columns. The column picker will add other standard columns
-        return [
-            'Name',
-            {
-                text: TsConstants.LABEL.PROJECT,
-                dataIndex: 'Project'
-            }
-        ].concat(this.getDerivedColumnCfgs());
+        return this.getDefaultFields().concat(this.getDerivedColumnCfgs());
     },
 
     getDerivedColumnCfgs: function() {
