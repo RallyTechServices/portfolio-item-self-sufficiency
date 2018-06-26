@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CATS-portfolio-item-self-sufficiency-1.0.10</title>
+    <title>CATS-portfolio-item-self-sufficiency-1.0.9</title>
     <!--  (c) 2017 CA Technologies.  All Rights Reserved. -->
 
     <script type="text/javascript">
         var ARTIFACT = "";
         var BUILDER  = "ec2-user";
-        var CHECKSUM = 13612992655;
+        var CHECKSUM = 13611447775;
     </script>
 
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>

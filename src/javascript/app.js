@@ -74,6 +74,7 @@ Ext.define("CArABU.app.TSApp", {
 
     addPiTypeSelector: function() {
         var navPanel = this.down('#' + TsConstants.ID.SELECTION_AREA);
+        navPanel.removeAll();
         navPanel.add({
             xtype: 'rallyportfolioitemtypecombobox',
             fieldLabel: TsConstants.LABEL.PI_TYPE,
@@ -212,16 +213,28 @@ Ext.define("CArABU.app.TSApp", {
             scope: this,
             success: function(pisInProjectFilter) {
                 var oidsFilter = this.getOidsFilter(piOids);
+                var filters = pisInProjectFilter.or(oidsFilter)
+
+                // Page filters
+                var timeboxScope = this.getContext().getTimeboxScope();
+                if (timeboxScope) {
+                    filters = timeboxScope.getQueryFilter().and(filters);
+                }
+
+                if (this.gridFilters) {
+                    filters = this.gridFilters.and(filters);
+                }
+
                 return Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
                     models: [piType.get('TypePath')],
                     context: {
                         projectScopeUp: true,
                         projectScopeDown: true,
                     },
-                    filters: pisInProjectFilter.or(oidsFilter),
+                    filters: filters,
                     enableRootLevelPostGet: true,
                     fetch: TsConstants.FETCH.PI,
-                    autoLoad: true,
+                    autoLoad: false,
                     enableHierarchy: true
                 })
             }
@@ -234,65 +247,125 @@ Ext.define("CArABU.app.TSApp", {
                 }
                 this.itemSelector = navPanel.add({
                     items: [{
-                        xtype: 'rallytreegrid',
-                        columnCfgs: [
-                            'Name',
-                            {
-                                text: TsConstants.LABEL.PROJECT,
-                                dataIndex: 'Project'
-                            },
-                            {
-                                text: TsConstants.LABEL.OWNERSHIP_BY_COUNT,
-                                dataIndex: 'ObjectID',
-                                sortable: false,
-                                scope: this,
-                                renderer: function(value, meta, record) {
-                                    var part = record.get('InsideStoryCount');
-                                    var whole = record.get('TotalStoryCount');
-                                    return this.percentRenderer(part, whole);
+                        xtype: 'rallygridboard',
+                        context: this.getContext(),
+                        modelNames: [piType.get('TypePath')],
+                        toggleState: 'grid',
+                        listeners: {
+                            scope: this,
+                            viewchange: this.onViewChange
+                        },
+                        plugins: [{
+                                ptype: 'rallygridboardinlinefiltercontrol',
+                                headerPosition: 'left',
+                                inlineFilterButtonConfig: {
+                                    modelNames: ['User Story', piType.get('TypePath')],
+                                    filterChildren: true,
+                                    stateful: true,
+                                    stateId: this.getContext().getScopedStateId('filter'),
+                                    inlineFilterPanelConfig: {
+                                        collapsed: true,
+                                        quickFilterPanelConfig: {
+                                            fieldNames: ['Owner']
+                                        }
+                                    }
                                 }
                             },
                             {
-                                text: TsConstants.LABEL.OWNERSHIP_BY_POINTS,
-                                dataIndex: 'ObjectID',
-                                sortable: false,
-                                scope: this,
-                                renderer: function(value, meta, record) {
-                                    var part = record.get('InsideStoryPoints');
-                                    var whole = record.get('TotalPoints');
-                                    return this.percentRenderer(part, whole);
+                                ptype: 'rallygridboardfieldpicker',
+                                headerPosition: 'left',
+                                stateful: true,
+                                stateId: this.getContext().getScopedStateId('field-picker'),
+                            },
+                            {
+                                ptype: 'rallygridboardsharedviewcontrol',
+                                headerPosition: 'right',
+                                stateful: true,
+                                stateId: this.getContext().getScopedStateId('shared-view'),
+                                sharedViewConfig: {
+                                    fieldLabel: 'View:',
+                                    labelWidth: 40,
                                 }
                             }
                         ],
-                        enableBulkEdit: false,
-                        enableColumnHide: true,
-                        enableColumnMove: true,
-                        enableColumnResize: true,
-                        enableEditing: false,
-                        enableInlineAdd: false,
-                        enableRanking: false,
-                        shouldShowRowActionsColumn: true,
-                        store: store,
-                        fetch: ['ObjectID'],
-                        listeners: {
-                            scope: this,
-                            load: function(store, node, records) {
-                                _.forEach(records, function(record) {
-                                    TsMetricsMgr.setMetrics(record);
-                                })
-                            },
-                            itemclick: function(tree, record) {
-                                // Only draw the charts if data has loaded for the item
-                                if (record.get('TotalStoryCount')) {
-                                    this.addCharts(record);
-                                    this.addDetails(record);
+                        gridConfig: {
+                            columnCfgs: this.getColumnCfgs(),
+                            derivedColumnCfgs: this.getDerivedColumnCfgs(),
+                            enableBulkEdit: false,
+                            enableColumnHide: true,
+                            enableColumnMove: true,
+                            enableColumnResize: true,
+                            enableEditing: false,
+                            enableInlineAdd: false,
+                            enableRanking: false,
+                            shouldShowRowActionsColumn: true,
+                            store: store,
+                            fetch: ['ObjectID'],
+                            listeners: {
+                                scope: this,
+                                load: function(store, node, records) {
+                                    _.forEach(records, function(record) {
+                                        TsMetricsMgr.setMetrics(this.piTypeDefs, record);
+                                    }, this)
+                                },
+                                itemclick: function(tree, record) {
+                                    // Only draw the charts if data has loaded for the item
+                                    if (record.get('TotalStoryCount')) {
+                                        this.addCharts(record);
+                                        this.addDetails(record);
+                                    }
                                 }
                             }
-                        }
+                        },
+                        height: this.getHeight(),
                     }],
                 });
             }
         });
+    },
+
+    onViewChange: function() {
+        this.gridFilters = this.down('rallyinlinefilterbutton').getWsapiFilter();
+        this.addPiTypeSelector();
+    },
+
+    getColumnCfgs: function() {
+        // Currently mostly derived columns. The column picker will add other standard columns
+        return [
+            'Name',
+            {
+                text: TsConstants.LABEL.PROJECT,
+                dataIndex: 'Project'
+            }
+        ].concat(this.getDerivedColumnCfgs());
+    },
+
+    getDerivedColumnCfgs: function() {
+        return [{
+                text: TsConstants.LABEL.OWNERSHIP_BY_COUNT,
+                xtype: 'templatecolumn',
+                tpl: '',
+                sortable: false,
+                scope: this,
+                renderer: function(value, meta, record) {
+                    var part = record.get('InsideStoryCount');
+                    var whole = record.get('TotalStoryCount');
+                    return this.percentRenderer(part, whole);
+                }
+            },
+            {
+                text: TsConstants.LABEL.OWNERSHIP_BY_POINTS,
+                xtype: 'templatecolumn',
+                tpl: '',
+                sortable: false,
+                scope: this,
+                renderer: function(value, meta, record) {
+                    var part = record.get('InsideStoryPoints');
+                    var whole = record.get('TotalPoints');
+                    return this.percentRenderer(part, whole);
+                }
+            }
+        ];
     },
 
     addCharts: function(record) {

@@ -21,7 +21,7 @@ Ext.define('TsMetricsMgr', function() {
             })
     }
 
-    function setMetrics(portfolioItem) {
+    function setMetrics(piTypeDefs, portfolioItem) {
         if (!portfolioItem) {
             return
         }
@@ -38,7 +38,7 @@ Ext.define('TsMetricsMgr', function() {
                     });
 
                     // Get the filters needed to load the stories in/out of the project hierarchy
-                    var piFilter = getPiFilter(portfolioItemOid);
+                    var piFilter = getPiFilter(piTypeDefs, portfolioItemOid);
                     var leafStoriesFilter = getLeafStoriesFilter();
                     var insideStoriesFilter = getStoriesFilter(oids, true).and(piFilter).and(leafStoriesFilter);
                     var outsideStoriesFilter = getStoriesFilter(oids, false).and(piFilter).and(leafStoriesFilter);
@@ -124,29 +124,44 @@ Ext.define('TsMetricsMgr', function() {
         return result;
     }
 
-    function getPiFilter(portfolioItemOid) {
-        // TODO (tj) make this query dynamic based on defined PortfolioItemTypes
-        var parentQueries = [{
-                property: 'Feature.ObjectID', // Feature
-                value: portfolioItemOid
-            },
-            {
-                property: 'Feature.Parent.ObjectID', // Epic
-                value: portfolioItemOid
-            },
-            {
-                property: 'Feature.Parent.Parent.ObjectID', // Initiative
-                value: portfolioItemOid
-            },
-            {
-                property: 'Feature.Parent.Parent.Parent.ObjectID', // Theme
-                value: portfolioItemOid
-            },
-            {
-                property: 'Feature.Parent.Parent.Parent.Parent.ObjectID', // Group
+    /*****
+     * Return all possible parent queries given the current workspace PI levels.
+     * 
+     * For example
+     
+    var parentQueries = [{
+            property: 'Feature.ObjectID', // Feature
+            value: portfolioItemOid
+        },
+        {
+            property: 'Feature.Parent.ObjectID', // Epic
+            value: portfolioItemOid
+        },
+        {
+            property: 'Feature.Parent.Parent.ObjectID', // Initiative
+            value: portfolioItemOid
+        },
+        {
+            property: 'Feature.Parent.Parent.Parent.ObjectID', // Theme
+            value: portfolioItemOid
+        },
+        {
+            property: 'Feature.Parent.Parent.Parent.Parent.ObjectID', // Group
+            value: portfolioItemOid
+        }
+    ];
+    ***/
+    function getPiFilter(piTypeDefs, portfolioItemOid) {
+        var lowestPiName = piTypeDefs[0].get('Name');
+        var parentString = '';
+        var parentQueries = _.map(piTypeDefs, function(piTypeDef, index) {
+            var result = {
+                property: lowestPiName + parentString + '.ObjectID',
                 value: portfolioItemOid
             }
-        ];
+            parentString = parentString + '.Parent';
+            return result;
+        });
         return Rally.data.wsapi.Filter.or(parentQueries);
     }
 
