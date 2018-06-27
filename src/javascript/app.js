@@ -256,81 +256,89 @@ Ext.define("CArABU.app.TSApp", {
                                 storeConfig: {
                                     filters: filters
                                 },
-                                plugins: [{
-                                        ptype: 'rallygridboardinlinefiltercontrol',
-                                        headerPosition: 'left',
-                                        inlineFilterButtonConfig: {
-                                            modelNames: [piType.get('TypePath')],
-                                            filterChildren: true,
-                                            stateful: true,
-                                            stateId: this.getContext().getScopedStateId('filter'),
-                                            inlineFilterPanelConfig: {
-                                                collapsed: true,
-                                                quickFilterPanelConfig: {
-                                                    fieldNames: ['Owner']
-                                                }
-                                            }
-                                        }
-                                    },
-                                    {
-                                        ptype: 'rallygridboardfieldpicker',
-                                        headerPosition: 'left',
-                                        stateful: true,
-                                        stateId: this.getContext().getScopedStateId('field-picker'),
-                                    },
-                                    {
-                                        ptype: 'rallygridboardsharedviewcontrol',
-                                        headerPosition: 'right',
-                                        stateful: true,
-                                        stateId: this.getContext().getScopedStateId('shared-view'),
-                                        sharedViewConfig: {
-                                            fieldLabel: 'View:',
-                                            labelWidth: 40,
-                                            defaultViews: _.map(this.getDefaultViews(), function(view) {
-                                                Ext.apply(view, {
-                                                    Value: Ext.JSON.encode(view.Value, true)
-                                                });
-                                                return view;
-                                            }, this),
-                                        }
-                                    }
-                                ],
-                                gridConfig: {
-                                    columnCfgs: this.getColumnCfgs(),
-                                    derivedColumnCfgs: this.getDerivedColumnCfgs(),
-                                    enableBulkEdit: false,
-                                    enableColumnHide: true,
-                                    enableColumnMove: true,
-                                    enableColumnResize: true,
-                                    enableEditing: false,
-                                    enableInlineAdd: false,
-                                    enableRanking: false,
-                                    shouldShowRowActionsColumn: true,
-                                    store: store,
-                                    fetch: ['ObjectID'],
-                                    listeners: {
-                                        scope: this,
-                                        load: function(store, node, records) {
-                                            _.forEach(records, function(record) {
-                                                TsMetricsMgr.setMetrics(this.piTypeDefs, record);
-                                            }, this)
-                                        },
-                                        itemclick: function(tree, record) {
-                                            // Only draw the charts if data has loaded for the item
-                                            if (record.get('TotalStoryCount')) {
-                                                this.addCharts(record);
-                                                this.addDetails(record);
-                                            }
-                                        }
-                                    }
-                                },
-                                height: this.getHeight(),
+                                plugins: this.getMainGridPlugins([piType.get('TypePath')]),
+                                gridConfig: this.getMainGridConfig(store),
+                                height: this.getHeight() - 80,
                             }],
                         });
                     }
                 });
             }
         })
+    },
+
+    getMainGridPlugins: function(modelNames) {
+        return [{
+                ptype: 'rallygridboardinlinefiltercontrol',
+                headerPosition: 'left',
+                inlineFilterButtonConfig: {
+                    modelNames: modelNames,
+                    filterChildren: true,
+                    stateful: true,
+                    stateId: this.getContext().getScopedStateId('filter'),
+                    inlineFilterPanelConfig: {
+                        collapsed: true,
+                        quickFilterPanelConfig: {
+                            fieldNames: ['Owner']
+                        }
+                    }
+                }
+            },
+            {
+                ptype: 'rallygridboardfieldpicker',
+                headerPosition: 'left',
+                stateful: true,
+                stateId: this.getContext().getScopedStateId('field-picker'),
+            },
+            {
+                ptype: 'rallygridboardsharedviewcontrol',
+                headerPosition: 'right',
+                stateful: true,
+                stateId: this.getContext().getScopedStateId('shared-view'),
+                sharedViewConfig: {
+                    fieldLabel: 'View:',
+                    labelWidth: 40,
+                    defaultViews: _.map(this.getDefaultViews(), function(view) {
+                        Ext.apply(view, {
+                            Value: Ext.JSON.encode(view.Value, true)
+                        });
+                        return view;
+                    }, this),
+                }
+            }
+        ];
+    },
+
+    getMainGridConfig: function(store) {
+        return {
+            columnCfgs: this.getColumnCfgs(),
+            derivedColumnCfgs: this.getDerivedColumnCfgs(),
+            enableBulkEdit: false,
+            enableColumnHide: true,
+            enableColumnMove: true,
+            enableColumnResize: true,
+            enableEditing: false,
+            enableInlineAdd: false,
+            enableRanking: false,
+            shouldShowRowActionsColumn: true,
+            store: store,
+            fetch: ['ObjectID'],
+            listeners: {
+                scope: this,
+                load: function(store, node, records) {
+                    _.forEach(records, function(record) {
+                        TsMetricsMgr.setMetrics(this.piTypeDefs, record);
+                    }, this)
+                },
+                itemclick: function(tree, record) {
+                    // Only draw the charts if data has loaded for the item
+                    if (record.get('TotalStoryCount')) {
+                        this.addCharts(record);
+                        this.addDetails(record);
+                    }
+                }
+            }
+        };
     },
 
     getDefaultViews: function() {
