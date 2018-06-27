@@ -1,7 +1,7 @@
 {
     "name": "portfolio-item-self-sufficiency",
     "sdk": "2.1",
-    "version": "1.0.12",
+    "version": "1.0.13",
     "className": "CArABU.app.TSApp",
     "artifact": "",
     "javascript": [
