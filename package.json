@@ -12,6 +12,7 @@
     "postversion": "git push origin master && git push origin master --tags"
   },
   "dependencies": {
+    "@agile-central-technical-services/utils-shared-views": "^1.0.0",
     "@agile-central-technical-services/utils-treegrid-derived-columns": "^1.0.0"
   },
   "devDependencies": {

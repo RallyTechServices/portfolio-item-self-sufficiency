@@ -1,11 +1,12 @@
 {
     "name": "portfolio-item-self-sufficiency",
     "sdk": "2.1",
-    "version": "1.0.13",
+    "version": "1.0.14",
     "className": "CArABU.app.TSApp",
     "artifact": "",
     "javascript": [
         "node_modules/@agile-central-technical-services/utils-treegrid-derived-columns/index.js",
+        "node_modules/@agile-central-technical-services/utils-shared-views/index.js",
         "src/javascript/utils/__ts-info-link.js",
         "src/javascript/utils/__ts-logger.js",
         "src/javascript/utils/__ts-utilities.js",
