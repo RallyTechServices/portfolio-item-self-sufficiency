@@ -67,13 +67,13 @@ Ext.define('TsMetricsMgr', function() {
                                 TotalStoryCount: insideCount + outsideCount,
                                 TotalPoints: insidePoints + outsidePoints,
                                 InsideStoryCount: insideCount,
-                                InsideStoryCountPercent: Math.round(insideCount / (insideCount + outsideCount) * 100),
+                                InsideStoryCountPercent: Math.round(insideCount / (insideCount + outsideCount) * 100) || Infinity,
                                 InsideStoryPoints: insidePoints,
-                                InsideStoryPointsPercent: Math.round(insidePoints / (insidePoints + outsidePoints) * 100),
+                                InsideStoryPointsPercent: Math.round(insidePoints / (insidePoints + outsidePoints) * 100) || Infinity,
                                 OutsideStoryCount: outsideCount,
-                                OutsideStoryCountPercent: Math.round(outsideCount / (insideCount + outsideCount) * 100),
+                                OutsideStoryCountPercent: Math.round(outsideCount / (insideCount + outsideCount) * 100) || Infinity,
                                 OutsideStoryPoints: outsidePoints,
-                                OutsideStoryPointsPercent: Math.round(outsidePoints / (insidePoints + outsidePoints) * 100),
+                                OutsideStoryPointsPercent: Math.round(outsidePoints / (insidePoints + outsidePoints) * 100) || Infinity,
                                 InsideStoriesFilter: insideStoriesFilter, // Needed so we can use these same filters to display details
                                 OutsideStoriesFilter: outsideStoriesFilter // Needed so we can use these same filters to display details
                             });

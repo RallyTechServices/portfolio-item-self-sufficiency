@@ -375,9 +375,10 @@ Ext.define("CArABU.app.TSApp", {
     getDerivedColumnCfgs: function() {
         return [{
                 text: TsConstants.LABEL.OWNERSHIP_BY_COUNT,
-                xtype: 'templatecolumn',
-                tpl: '',
-                sortable: false,
+                xtype: 'gridcolumn',
+                dataIndex: 'InsideStoryCountPercent',
+                //tpl: '',
+                sortable: true,
                 scope: this,
                 renderer: function(value, meta, record) {
                     var part = record.get('InsideStoryCount');
@@ -387,9 +388,10 @@ Ext.define("CArABU.app.TSApp", {
             },
             {
                 text: TsConstants.LABEL.OWNERSHIP_BY_POINTS,
-                xtype: 'templatecolumn',
-                tpl: '',
-                sortable: false,
+                xtype: 'gridcolumn',
+                dataIndex: 'InsideStoryPointsPercent',
+                //tpl: '',
+                sortable: true,
                 scope: this,
                 renderer: function(value, meta, record) {
                     var part = record.get('InsideStoryPoints');
