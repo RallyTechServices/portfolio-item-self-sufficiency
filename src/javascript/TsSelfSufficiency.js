@@ -10,5 +10,10 @@ Ext.define('TsSelfSufficiency', {
         { name: 'InsideStoryPoints', type: 'int', },
         { name: 'OutsideStoryCount', type: 'int', },
         { name: 'OutsideStoryPoints', type: 'int', },
+        { name: 'InsideStoryCountPercent', type: 'int', },
+        { name: 'InsideStoryPointsPercent', type: 'int', },
+        { name: 'OutsideStoryCountPercent', type: 'int', },
+        { name: 'OutsideStoryPointsPercent', type: 'int', },
+        { name: 'OutsideProjectHierarchy', type: 'boolean', },
     ]
 })

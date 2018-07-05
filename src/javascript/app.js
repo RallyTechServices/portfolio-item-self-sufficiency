@@ -230,6 +230,7 @@ Ext.define("CArABU.app.TSApp", {
                     context: {
                         projectScopeUp: true,
                         projectScopeDown: true,
+                        project: null
                     },
                     filters: filters,
                     enableRootLevelPostGet: true,
@@ -275,7 +276,7 @@ Ext.define("CArABU.app.TSApp", {
                     modelNames: modelNames,
                     filterChildren: true,
                     stateful: true,
-                    stateId: this.getContext().getScopedStateId('filter'),
+                    stateId: this.getContext().getScopedStateId('portfolio-items-filter'),
                     inlineFilterPanelConfig: {
                         collapsed: true,
                         quickFilterPanelConfig: {
@@ -357,7 +358,9 @@ Ext.define("CArABU.app.TSApp", {
             'Name',
             {
                 text: TsConstants.LABEL.PROJECT,
-                dataIndex: 'Project'
+                dataIndex: 'Project',
+                // TODO (tj) needs testing
+                //renderer: this.projectRenderer
             }
         ]
     },
@@ -374,9 +377,10 @@ Ext.define("CArABU.app.TSApp", {
     getDerivedColumnCfgs: function() {
         return [{
                 text: TsConstants.LABEL.OWNERSHIP_BY_COUNT,
-                xtype: 'templatecolumn',
-                tpl: '',
-                sortable: false,
+                xtype: 'gridcolumn',
+                dataIndex: 'InsideStoryCountPercent',
+                //tpl: '',
+                sortable: true,
                 scope: this,
                 renderer: function(value, meta, record) {
                     var part = record.get('InsideStoryCount');
@@ -386,9 +390,10 @@ Ext.define("CArABU.app.TSApp", {
             },
             {
                 text: TsConstants.LABEL.OWNERSHIP_BY_POINTS,
-                xtype: 'templatecolumn',
-                tpl: '',
-                sortable: false,
+                xtype: 'gridcolumn',
+                dataIndex: 'InsideStoryPointsPercent',
+                //tpl: '',
+                sortable: true,
                 scope: this,
                 renderer: function(value, meta, record) {
                     var part = record.get('InsideStoryPoints');
@@ -427,6 +432,9 @@ Ext.define("CArABU.app.TSApp", {
         // The alternative of re-using the stores that were created in the TsMetricsMgr
         // didn't work, and would blank all stories when a PI was clicked a second time.
 
+        var outsideStoriesFilter = record.get('OutsideStoriesFilter');
+        var insideStoriesFilter = record.get('InsideStoriesFilter');
+
         // Add the grid of outside stories
         Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
             model: 'HierarchicalRequirement',
@@ -434,9 +442,9 @@ Ext.define("CArABU.app.TSApp", {
                 project: null
             },
             fetch: TsConstants.FETCH.USER_STORY,
-            autoLoad: true,
-            enableHierarchy: false,
-            filters: record.get('OutsideStoriesFilter')
+            autoLoad: false,
+            enableHierarchy: true,
+            filters: outsideStoriesFilter
         }).then({
             scope: this,
             success: function(store) {
@@ -459,11 +467,10 @@ Ext.define("CArABU.app.TSApp", {
                             columnCfgs: TsConstants.SETTING.DEFAULT_DETAILS_FIELDS,
                             enableRanking: false,
                         },
-                        plugins: [{
-                            ptype: 'rallygridboardfieldpicker',
-                            headerPosition: 'left',
-                            modelNames: ['HierarchicalRequirement'],
-                        }, ],
+                        storeConfig: {
+                            filters: outsideStoriesFilter
+                        },
+                        plugins: this.getDetailsPlugins('outside-stories'),
                         listeners: {
                             boxready: function(grid) {
                                 grid.setLoading(true);
@@ -484,9 +491,9 @@ Ext.define("CArABU.app.TSApp", {
                 project: null
             },
             fetch: TsConstants.FETCH.USER_STORY,
-            autoLoad: true,
-            enableHierarchy: false,
-            filters: record.get('InsideStoriesFilter')
+            autoLoad: false,
+            enableHierarchy: true,
+            filters: insideStoriesFilter
         }).then({
             scope: this,
             success: function(store) {
@@ -509,11 +516,10 @@ Ext.define("CArABU.app.TSApp", {
                             columnCfgs: TsConstants.SETTING.DEFAULT_DETAILS_FIELDS,
                             enableRanking: false
                         },
-                        plugins: [{
-                            ptype: 'rallygridboardfieldpicker',
-                            headerPosition: 'left',
-                            modelNames: ['HierarchicalRequirement'],
-                        }],
+                        storeConfig: {
+                            filters: insideStoriesFilter
+                        },
+                        plugins: this.getDetailsPlugins('inside-stories'),
                         listeners: {
                             boxready: function(grid) {
                                 grid.setLoading(true);
@@ -527,6 +533,35 @@ Ext.define("CArABU.app.TSApp", {
             }
         });
     },
+
+    getDetailsPlugins: function(stateId) {
+        return [{
+                ptype: 'rallygridboardinlinefiltercontrol',
+                headerPosition: 'left',
+                inlineFilterButtonConfig: {
+                    modelNames: ['User Story'],
+                    filterChildren: false,
+                    stateful: true,
+                    stateId: this.getContext().getScopedStateId(stateId + '-filter'),
+                    context: this.getContext(),
+                    inlineFilterPanelConfig: {
+                        collapsed: true,
+                        quickFilterPanelConfig: {
+                            fieldNames: ['Owner']
+                        }
+                    }
+                }
+            },
+            {
+                ptype: 'rallygridboardfieldpicker',
+                headerPosition: 'left',
+                modelNames: ['HierarchicalRequirement'],
+                stateful: true,
+                stateId: this.getContext().getScopedStateId(stateId + '-fields'),
+            },
+        ]
+    },
+
 
     getChart: function(inside, total, title) {
         // Set a warning color if the percent inside the project is less than the warning threshold
@@ -621,6 +656,16 @@ Ext.define("CArABU.app.TSApp", {
         }
         return result;
     },
+
+    /*
+    projectRenderer: function(value, meta, record) {
+        var classes = '';
+        if (record.get('OutsideProjectHierarchy')) {
+            classes = 'caution'
+        }
+        return '<div class="' + classes + '">' + value.Name + '</div>';
+    },
+    */
 
     getSettingsFields: function() {
         return [{
