@@ -28,13 +28,19 @@ Ext.define('TsMetricsMgr', function() {
 
         var projectOid = Rally.getApp().getContext().getProject().ObjectID;
         var portfolioItemOid = portfolioItem.get('ObjectID');
+        var portfolioItemProjectOid = portfolioItem.get('Project').ObjectID;
 
         return getDescendentProjects(projectOid)
             .then({
                 scope: this,
                 success: function(projects) {
+                    var outsideProjectHierarchy = true;
                     var oids = _.map(projects, function(project) {
-                        return project.get('ObjectID');
+                        var projectOid = project.get('ObjectID');
+                        if (portfolioItemProjectOid == projectOid) {
+                            outsideProjectHierarchy = false;
+                        }
+                        return projectOid;
                     });
 
                     // Get the filters needed to load the stories in/out of the project hierarchy
@@ -75,7 +81,8 @@ Ext.define('TsMetricsMgr', function() {
                                 OutsideStoryPoints: outsidePoints,
                                 OutsideStoryPointsPercent: calcPercent(outsidePoints, (insidePoints + outsidePoints)),
                                 InsideStoriesFilter: insideStoriesFilter, // Needed so we can use these same filters to display details
-                                OutsideStoriesFilter: outsideStoriesFilter // Needed so we can use these same filters to display details
+                                OutsideStoriesFilter: outsideStoriesFilter, // Needed so we can use these same filters to display details
+                                OutsideProjectHierarchy: outsideProjectHierarchy
                             });
 
                             // Add the Self Sufficiency fields to the portfolio item directly so they can be used in a grid of PIs

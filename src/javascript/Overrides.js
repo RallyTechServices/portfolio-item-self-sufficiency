@@ -17,6 +17,9 @@ Ext.override(Rally.data.wsapi.TreeStore, {
         _.each(Ext.Array.from(models), Rally.ui.grid.data.NodeInterface.decorate, Rally.ui.grid.data.NodeInterface);
     },
 
+    /**
+     * Add any fields here that will be used as a 'dataIndex' on the column (usually to allow sorting)
+     */
     addExtraFields: function(model) {
         model.addField({
             name: 'InsideStoryCountPercent',
@@ -28,25 +31,7 @@ Ext.override(Rally.data.wsapi.TreeStore, {
             }
         });
         model.addField({
-            name: 'OutsideStoryCountPercent',
-            type: 'int',
-            defaultValue: undefined,
-            modelType: model.typePath, // TODO (tj) modelType used anywhere?
-            getUUID: function() { // Must include a getUUID function for state save/restore to work
-                return this.name;
-            }
-        });
-        model.addField({
             name: 'InsideStoryPointsPercent',
-            type: 'int',
-            defaultValue: undefined,
-            modelType: model.typePath, // TODO (tj) modelType used anywhere?
-            getUUID: function() { // Must include a getUUID function for state save/restore to work
-                return this.name;
-            }
-        });
-        model.addField({
-            name: 'OutsideStoryPointsPercent',
             type: 'int',
             defaultValue: undefined,
             modelType: model.typePath, // TODO (tj) modelType used anywhere?
