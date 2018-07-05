@@ -359,7 +359,8 @@ Ext.define("CArABU.app.TSApp", {
             {
                 text: TsConstants.LABEL.PROJECT,
                 dataIndex: 'Project',
-                renderer: this.projectRenderer
+                // TODO (tj) needs testing
+                //renderer: this.projectRenderer
             }
         ]
     },
@@ -656,6 +657,7 @@ Ext.define("CArABU.app.TSApp", {
         return result;
     },
 
+    /*
     projectRenderer: function(value, meta, record) {
         var classes = '';
         if (record.get('OutsideProjectHierarchy')) {
@@ -663,6 +665,7 @@ Ext.define("CArABU.app.TSApp", {
         }
         return '<div class="' + classes + '">' + value.Name + '</div>';
     },
+    */
 
     getSettingsFields: function() {
         return [{
