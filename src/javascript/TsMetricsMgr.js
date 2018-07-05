@@ -67,13 +67,13 @@ Ext.define('TsMetricsMgr', function() {
                                 TotalStoryCount: insideCount + outsideCount,
                                 TotalPoints: insidePoints + outsidePoints,
                                 InsideStoryCount: insideCount,
-                                InsideStoryCountPercent: Math.round(insideCount / (insideCount + outsideCount) * 100) || Infinity,
+                                InsideStoryCountPercent: calcPercent(insideCount, (insideCount + outsideCount)),
                                 InsideStoryPoints: insidePoints,
-                                InsideStoryPointsPercent: Math.round(insidePoints / (insidePoints + outsidePoints) * 100) || Infinity,
+                                InsideStoryPointsPercent: calcPercent(insidePoints, (insidePoints + outsidePoints)),
                                 OutsideStoryCount: outsideCount,
-                                OutsideStoryCountPercent: Math.round(outsideCount / (insideCount + outsideCount) * 100) || Infinity,
+                                OutsideStoryCountPercent: calcPercent(outsideCount, (insideCount + outsideCount)),
                                 OutsideStoryPoints: outsidePoints,
-                                OutsideStoryPointsPercent: Math.round(outsidePoints / (insidePoints + outsidePoints) * 100) || Infinity,
+                                OutsideStoryPointsPercent: calcPercent(outsidePoints, (insidePoints + outsidePoints)),
                                 InsideStoriesFilter: insideStoriesFilter, // Needed so we can use these same filters to display details
                                 OutsideStoriesFilter: outsideStoriesFilter // Needed so we can use these same filters to display details
                             });
@@ -84,6 +84,14 @@ Ext.define('TsMetricsMgr', function() {
                     })
                 }
             });
+    }
+
+    function calcPercent(part, whole) {
+        var result = 0;
+        if (part && whole) {
+            result = Math.round(part / whole * 100)
+        }
+        return result;
     }
 
     function getDescendentProjects(projectOid) {
