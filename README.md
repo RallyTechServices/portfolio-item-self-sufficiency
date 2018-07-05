@@ -28,9 +28,6 @@ of stories inside or outside of the project tree.
 The minimum desired self-sufficiency threshold can be configured using an app setting.
 By default this is 80%.
 
-Portfolio items outside the current project hierarchy are highlighted to help identify an item
-not owned 
-
 ### First Load
 
 If you've just downloaded this from github and you want to do development,
